@@ -411,7 +411,7 @@ select {
   padding: 16px 18px;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   border-bottom: 1px solid var(--line);
 }
 
@@ -424,6 +424,35 @@ select {
 #waytoagiUpdatedAt {
   color: var(--muted);
   font-size: 13px;
+}
+
+.waytoagi-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.waytoagi-switch {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.waytoagi-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.waytoagi-btn.active {
+  background: linear-gradient(90deg, rgba(217, 72, 37, 0.14), rgba(15, 111, 127, 0.16));
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .waytoagi-meta {
@@ -504,6 +533,12 @@ select {
 
   .time {
     margin-left: 0;
+  }
+
+  .waytoagi-head {
+    align-items: flex-start;
+    gap: 8px;
+    flex-direction: column;
   }
 }
 

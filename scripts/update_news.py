@@ -246,7 +246,7 @@ def parse_relative_time_zh(text: str, now: datetime) -> datetime | None:
     if "昨天" in text:
         return now - timedelta(days=1)
 
-    m = re.search(r"(\d{1,2}):(\d{2})", text)
+    m = re.fullmatch(r"(?:今天)?\s*(\d{1,2}):(\d{2})", text)
     if m:
         hour = int(m.group(1))
         minute = int(m.group(2))
@@ -255,7 +255,13 @@ def parse_relative_time_zh(text: str, now: datetime) -> datetime | None:
             candidate -= timedelta(days=1)
         return candidate
 
-    m = re.search(r"(\d{1,2})月(\d{1,2})日", text)
+    m = re.fullmatch(r"昨天\s*(\d{1,2}):(\d{2})", text)
+    if m:
+        hour = int(m.group(1))
+        minute = int(m.group(2))
+        return (now - timedelta(days=1)).replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+    m = re.fullmatch(r"(?:\d{4}年\s*)?(\d{1,2})月(\d{1,2})日", text)
     if m:
         month = int(m.group(1))
         day = int(m.group(2))
@@ -308,7 +314,7 @@ def parse_date_any(value: Any, now: datetime) -> datetime | None:
             pass
 
     try:
-        dt = dtparser.parse(s)
+        dt = dtparser.parse(s, tzinfos={"UT": 0, "UTC": 0, "GMT": 0})
         if not dt.tzinfo:
             dt = dt.replace(tzinfo=UTC)
         return dt.astimezone(UTC)
@@ -550,6 +556,8 @@ def fetch_waytoagi_recent_7d(session: requests.Session, now_utc: datetime, root_
         if start_date <= date.fromisoformat(str(u.get("date") or "1970-01-01")) <= end_date
     ]
     recent.sort(key=lambda x: (x["date"], x["title"]), reverse=True)
+    latest_date = recent[0]["date"] if recent else None
+    updates_today = [u for u in recent if u.get("date") == latest_date] if latest_date else []
 
     warning = "近7日未解析到更新条目" if not recent else None
     return {
@@ -558,6 +566,9 @@ def fetch_waytoagi_recent_7d(session: requests.Session, now_utc: datetime, root_
         "root_url": root_url,
         "history_url": history_url,
         "window_days": 7,
+        "latest_date": latest_date,
+        "count_today": len(updates_today),
+        "updates_today": updates_today,
         "count_7d": len(recent),
         "updates_7d": recent,
         "warning": warning,
@@ -1615,6 +1626,10 @@ def load_archive(path: Path) -> dict[str, dict[str, Any]]:
 
 
 def event_time(record: dict[str, Any]) -> datetime | None:
+    # RSS sources must rely on the source's publish time only.
+    # first_seen_at is fetch time and would falsely mark historical items as "24h".
+    if str(record.get("site_id") or "") == "opmlrss":
+        return parse_iso(record.get("published_at"))
     return parse_iso(record.get("published_at")) or parse_iso(record.get("first_seen_at"))
 
 
@@ -2007,8 +2022,10 @@ def main() -> int:
             existing["source"] = raw.source
             existing["title"] = title
             existing["url"] = url
-            if raw.published_at and not existing.get("published_at"):
-                existing["published_at"] = iso(raw.published_at)
+            if raw.published_at:
+                # OPML RSS may fix previously wrong publish times; allow overwrite.
+                if raw.site_id == "opmlrss" or not existing.get("published_at"):
+                    existing["published_at"] = iso(raw.published_at)
             existing["last_seen_at"] = iso(now)
 
     # Prune old archive

@@ -10,6 +10,8 @@ const state = {
   siteFilter: "",
   query: "",
   mode: "ai",
+  waytoagiMode: "today",
+  waytoagiData: null,
   generatedAt: null,
 };
 
@@ -31,6 +33,8 @@ const allDedupeLabelEl = document.getElementById("allDedupeLabel");
 const waytoagiUpdatedAtEl = document.getElementById("waytoagiUpdatedAt");
 const waytoagiMetaEl = document.getElementById("waytoagiMeta");
 const waytoagiListEl = document.getElementById("waytoagiList");
+const waytoagiTodayBtnEl = document.getElementById("waytoagiTodayBtn");
+const waytoagi7dBtnEl = document.getElementById("waytoagi7dBtn");
 
 function fmtNumber(n) {
   return new Intl.NumberFormat("zh-CN").format(n || 0);
@@ -294,7 +298,19 @@ function renderList() {
   renderGroupedBySiteAndSource(filtered);
 }
 
+function waytoagiViews(waytoagi) {
+  const updates7d = Array.isArray(waytoagi?.updates_7d) ? waytoagi.updates_7d : [];
+  const latestDate = waytoagi?.latest_date || (updates7d.length ? updates7d[0].date : null);
+  const updatesToday = Array.isArray(waytoagi?.updates_today) && waytoagi.updates_today.length
+    ? waytoagi.updates_today
+    : (latestDate ? updates7d.filter((u) => u.date === latestDate) : []);
+  return { updates7d, updatesToday, latestDate };
+}
+
 function renderWaytoagi(waytoagi) {
+  const { updates7d, updatesToday, latestDate } = waytoagiViews(waytoagi);
+  if (waytoagiTodayBtnEl) waytoagiTodayBtnEl.classList.toggle("active", state.waytoagiMode === "today");
+  if (waytoagi7dBtnEl) waytoagi7dBtnEl.classList.toggle("active", state.waytoagiMode === "7d");
   waytoagiUpdatedAtEl.textContent = `更新时间：${fmtTime(waytoagi.generated_at)}`;
 
   waytoagiMetaEl.innerHTML = `
@@ -302,7 +318,9 @@ function renderWaytoagi(waytoagi) {
     <span>·</span>
     <a href="${waytoagi.history_url || "#"}" target="_blank" rel="noopener noreferrer">历史更新页</a>
     <span>·</span>
-    <span>近 7 日：${fmtNumber(waytoagi.count_7d || 0)} 条</span>
+    <span>当天(${latestDate || "--"})：${fmtNumber(waytoagi.count_today || updatesToday.length)} 条</span>
+    <span>·</span>
+    <span>近 7 日：${fmtNumber(waytoagi.count_7d || updates7d.length)} 条</span>
   `;
 
   waytoagiListEl.innerHTML = "";
@@ -314,11 +332,13 @@ function renderWaytoagi(waytoagi) {
     return;
   }
 
-  const updates = waytoagi.updates_7d || [];
+  const updates = state.waytoagiMode === "today" ? updatesToday : updates7d;
   if (!updates.length) {
     const div = document.createElement("div");
     div.className = "waytoagi-empty";
-    div.textContent = waytoagi.warning || "近 7 日没有更新";
+    div.textContent = state.waytoagiMode === "today"
+      ? "当天没有更新，可切换到近7日查看。"
+      : (waytoagi.warning || "近 7 日没有更新");
     waytoagiListEl.appendChild(div);
     return;
   }
@@ -371,7 +391,8 @@ async function init() {
   }
 
   if (waytoagiResult.status === "fulfilled") {
-    renderWaytoagi(waytoagiResult.value);
+    state.waytoagiData = waytoagiResult.value;
+    renderWaytoagi(state.waytoagiData);
   } else {
     waytoagiUpdatedAtEl.textContent = "加载失败";
     waytoagiListEl.innerHTML = `<div class="waytoagi-error">${waytoagiResult.reason.message}</div>`;
@@ -409,6 +430,20 @@ if (allDedupeToggleEl) {
     renderModeSwitch();
     renderSiteFilters();
     renderList();
+  });
+}
+
+if (waytoagiTodayBtnEl) {
+  waytoagiTodayBtnEl.addEventListener("click", () => {
+    state.waytoagiMode = "today";
+    if (state.waytoagiData) renderWaytoagi(state.waytoagiData);
+  });
+}
+
+if (waytoagi7dBtnEl) {
+  waytoagi7dBtnEl.addEventListener("click", () => {
+    state.waytoagiMode = "7d";
+    if (state.waytoagiData) renderWaytoagi(state.waytoagiData);
   });
 }
 
