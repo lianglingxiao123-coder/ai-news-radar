@@ -13,8 +13,29 @@ jobs:
         with:
           python-version: '3.10'
       - run: pip install -r requirements.txt
-      - run: python scripts/update_news.py --output-dir data --window-hours 24
-      - env:
+      
+      # --- 下面这一步是新加的：让机器人去保险箱里拿你的私人清单并解密 ---
+      - name: 还原私人订阅清单
+        env:
+          OPML_B64: ${{ secrets.FOLLOW_OPML_B64 }}
+        run: |
+          if [ ! -z "$OPML_B64" ]; then
+            mkdir -p feeds
+            echo "$OPML_B64" | base64 --decode > feeds/follow.opml
+            echo "✅ 成功从保险箱读取私人订阅清单！"
+          fi
+          
+      # --- 下面这一步修改了：告诉机器人，如果有私人清单，就带上清单一起抓新闻 ---
+      - name: 更新最新资讯
+        run: |
+          if [ -f "feeds/follow.opml" ]; then
+            python scripts/update_news.py --output-dir data --window-hours 24 --rss-opml feeds/follow.opml
+          else
+            python scripts/update_news.py --output-dir data --window-hours 24
+          fi
+
+      - name: 运行邮件发送脚本
+        env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
