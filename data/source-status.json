@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-02-24T06:15:33.854461Z",
+  "generated_at": "2026-02-24T08:08:46.428273Z",
   "sites": [
     {
       "site_id": "techurls",
       "site_name": "TechURLs",
       "ok": true,
       "item_count": 405,
-      "duration_ms": 554,
+      "duration_ms": 344,
       "error": null
     },
     {
@@ -14,15 +14,15 @@
       "site_name": "Buzzing",
       "ok": true,
       "item_count": 744,
-      "duration_ms": 374,
+      "duration_ms": 299,
       "error": null
     },
     {
       "site_id": "iris",
       "site_name": "Info Flow",
       "ok": true,
-      "item_count": 428,
-      "duration_ms": 107592,
+      "item_count": 445,
+      "duration_ms": 13077,
       "error": null
     },
     {
@@ -30,23 +30,23 @@
       "site_name": "BestBlogs",
       "ok": true,
       "item_count": 83,
-      "duration_ms": 12368,
+      "duration_ms": 2615,
       "error": null
     },
     {
       "site_id": "tophub",
       "site_name": "TopHub",
       "ok": true,
-      "item_count": 2943,
-      "duration_ms": 1218,
+      "item_count": 3009,
+      "duration_ms": 1858,
       "error": null
     },
     {
       "site_id": "zeli",
       "site_name": "Zeli",
       "ok": true,
-      "item_count": 78,
-      "duration_ms": 400,
+      "item_count": 79,
+      "duration_ms": 513,
       "error": null
     },
     {
@@ -54,7 +54,7 @@
       "site_name": "AI HubToday",
       "ok": true,
       "item_count": 50,
-      "duration_ms": 172,
+      "duration_ms": 223,
       "error": null
     },
     {
@@ -62,7 +62,7 @@
       "site_name": "AIbase",
       "ok": true,
       "item_count": 20,
-      "duration_ms": 1420,
+      "duration_ms": 1113,
       "error": null
     },
     {
@@ -70,15 +70,15 @@
       "site_name": "AI今日热榜",
       "ok": false,
       "item_count": 0,
-      "duration_ms": 45,
+      "duration_ms": 488,
       "error": "403 Client Error: Forbidden for url: https://aihot.today/"
     },
     {
       "site_id": "newsnow",
       "site_name": "NewsNow",
       "ok": true,
-      "item_count": 1398,
-      "duration_ms": 801,
+      "item_count": 1412,
+      "duration_ms": 1432,
       "error": null
     },
     {
@@ -87,7 +87,7 @@
       "ok": false,
       "partial_failures": 10,
       "item_count": 0,
-      "duration_ms": 2634,
+      "duration_ms": 2775,
       "error": "10 feeds failed",
       "feed_count": 10,
       "effective_feed_count": 10,
@@ -103,9 +103,9 @@
     "opmlrss"
   ],
   "zero_item_sites": [],
-  "fetched_raw_items": 6149,
-  "items_before_topic_filter": 13106,
-  "items_in_24h": 1225,
+  "fetched_raw_items": 6247,
+  "items_before_topic_filter": 13999,
+  "items_in_24h": 1309,
   "rss_opml": {
     "enabled": true,
     "path": "feeds/follow.opml",
@@ -136,7 +136,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/karpathy",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 269,
+        "duration_ms": 288,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -150,7 +150,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/AnthropicAI",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 265,
+        "duration_ms": 272,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -164,7 +164,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/ClemDelangue",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 258,
+        "duration_ms": 271,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -178,7 +178,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/demishassabis",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 257,
+        "duration_ms": 283,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -192,7 +192,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/elonmusk",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 266,
+        "duration_ms": 278,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -206,7 +206,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/gdb",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 267,
+        "duration_ms": 291,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -220,7 +220,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/ilyasut",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 262,
+        "duration_ms": 273,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -234,7 +234,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/jackclarksf",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 261,
+        "duration_ms": 260,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -248,7 +248,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/sama",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 267,
+        "duration_ms": 282,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -262,7 +262,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/ylecun",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 262,
+        "duration_ms": 277,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
