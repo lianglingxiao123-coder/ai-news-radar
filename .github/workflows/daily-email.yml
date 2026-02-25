@@ -1,7 +1,7 @@
 name: Daily Email Push
 on:
   schedule:
-    - cron: '0 0 * * *'  # 每天北京时间早上8点执行
+    - cron: '43 23 * * *'  # 每天北京时间早上执行
   workflow_dispatch:     # 允许手动点击运行
 
 jobs:
