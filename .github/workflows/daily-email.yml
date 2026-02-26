@@ -11,7 +11,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.10
+        python-version: '3.10'
     - name: Send test email
       env:
         SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
@@ -19,7 +19,7 @@ jobs:
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
         RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
       run: |
-        echo "Test SMTP configuration..."
+        echo "Testing SMTP configuration..."
         # 使用base64编码避免引号问题
         python_code="aW1wb3J0IG9zLCBzbXRwbGliCmltcG9ydCBzeXMKZnJvbSBlbWFpbC5taW1lLnRleHQgaW1wb3J0IE1pbWVUZXh0CgpzZXJ2ZXIgPSBvcy5lbnZpcm9uLmdldCgnU01UUF9TRVJWRVInKQpzZW5kZXIgPSBvcy5lbnZpcm9uLmdldCgnU0VOREVSX0VNQUlMJykKcGFzc3dvcmQgPSBvcy5lbnZpcm9uLmdldCgnU01UUF9QQVNTV09SRCcpCnJlY2VpdmVyID0gb3MuZW52aXJvbi5nZXQoJ1JFQ0VJVkVSX0VNQUlMJykKCnByaW50KCdDT05GSUc6JykKcHJpbnQoZiJTZXJ2ZXI6IHtzZXJ2ZXJ9IikKcHJpbnQoZiJTZW5kZXI6IHtzZW5kZXJ9IikKcHJpbnQoZiJSZWNlaXZlcjoge3JlY2VpdmVyfSIpCgppZiBub3QgYWxsKFtzZXJ2ZXIsIHNlbmRlciwgcGFzc3dvcmQsIHJlY2VpdmVyXSk6CiAgICBwcmludCgnTWlzc2luZyBjb25maWcnKQogICAgc3lzLmV4aXQoMCkKCm1zZyA9IE1pbWVUZXh0KCdBSSBOZXdzIFJhZGFyIHRlc3QgZW1haWwnLCAncGxhaW4nLCAndXRmLTgnKQptc2dbJ1N1YmplY3QnXSA9ICdBSSBOZXdzIFJhZGFyIFRlc3QnCm1zZ1snRnJvbSddID0gc2VuZGVyCm1zZ1snVG8nXSA9IHJlY2VpdmVyCgp0cnk6CiAgICBzID0gc210cGxpYi5TTVRQKHNlcnZlciwgNTg3KQogICAgcy5zdGFydHRscygpCiAgICBzLmxvZ2luKHNlbmRlciwgcGFzc3dvcmQpCiAgICBzLnNlbmRfbWVzc2FnZShtc2cpCiAgICBzLnF1aXQoKQogICAgcHJpbnQoJ0VtYWlsIHNlbnQgU1VDQ0VTUycpCiAgICBzeXMuZXhpdCgwKQpleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICBwcmludChmJ0VSUk9SOiB7c3RyKGUpWzo4MF19JykKICAgIHN5cy5leGl0KDEpCg=="
         python3 -c "$(echo "$python_code" | base64 -d)"
