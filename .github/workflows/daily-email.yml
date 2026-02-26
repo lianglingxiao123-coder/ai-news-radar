@@ -1,0 +1,48 @@
+name: Daily Email Push
+on:
+  schedule:
+    - cron: '30 23 * * *'  # UTC 23:30，北京时间早7:30
+  workflow_dispatch:     # 允许手动触发
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        
+      - name: Load OPML
+        env:
+          OPML_B64: ${{ secrets.FOLLOW_OPML_B64 }}
+        run: |
+          if [ -n "$OPML_B64" ]; then
+            echo "$OPML_B64" | base64 --decode > feeds/follow.opml 2>/dev/null || echo "Base64 decode failed"
+          fi
+          
+      - name: Fetch latest news
+        run: |
+          echo "Fetching AI news..."
+          if [ -f feeds/follow.opml ]; then
+            python scripts/update_news.py --output-dir data --window-hours 24 --rss-opml feeds/follow.opml --timeout 180
+          else
+            python scripts/update_news.py --output-dir data --window-hours 24 --timeout 180
+          fi
+          
+      - name: Send daily email (using script)
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        run: |
+          echo "Sending email..."
+          python scripts/send_email.py
