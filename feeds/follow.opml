@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
 <head>
-<title>AI Signal Board RSS Subscriptions - With Experts</title>
-<dateCreated>Wed, 26 Feb 2026 12:16:00 GMT</dateCreated>
+<title>AI News Radar - Complete Source Collection</title>
+<dateCreated>Wed, 26 Feb 2026 12:42:00 GMT</dateCreated>
 <ownerName>AI News Radar</ownerName>
 </head>
 <body>
 
-<!-- Original AI News Sources -->
+<!-- Original AI News Sources (高可靠性) -->
 <outline text="AI News Sources" title="AI News Sources">
 <outline
 text="OpenAI News"
@@ -32,74 +32,28 @@ htmlUrl="https://www.infoq.cn/"
 />
 </outline>
 
-<!-- Twitter AI Experts via RSSHub -->
-<outline text="Twitter AI Experts" title="Twitter AI Experts">
-
-<!-- Elon Musk -->
-<outline type="rss" text="Elon Musk" title="Elon Musk"
-xmlUrl="https://rsshub.app/twitter/user/elonmusk"
-htmlUrl="https://twitter.com/elonmusk"/>
-
-<!-- Sam Altman (OpenAI) -->
-<outline type="rss" text="Sam Altman" title="Sam Altman"
-xmlUrl="https://rsshub.app/twitter/user/sama"
-htmlUrl="https://twitter.com/sama"/>
-
-<!-- Yann LeCun (Meta AI) -->
-<outline type="rss" text="Yann LeCun" title="Yann LeCun"
-xmlUrl="https://rsshub.app/twitter/user/ylecun"
-htmlUrl="https://twitter.com/ylecun"/>
-
-<!-- Andrew Ng -->
-<outline type="rss" text="Andrew Ng" title="Andrew Ng"
-xmlUrl="https://rsshub.app/twitter/user/AndrewYNg"
-htmlUrl="https://twitter.com/AndrewYNg"/>
-
-<!-- Andrej Karpathy -->
-<outline type="rss" text="Andrej Karpathy" title="Andrej Karpathy"
-xmlUrl="https://rsshub.app/twitter/user/karpathy"
-htmlUrl="https://twitter.com/karpathy"/>
-
-<!-- Fei-Fei Li -->
-<outline type="rss" text="Fei-Fei Li" title="Fei-Fei Li"
-xmlUrl="https://rsshub.app/twitter/user/drfeifei"
-htmlUrl="https://twitter.com/drfeifei"/>
-
-<!-- 李开复 -->
-<outline type="rss" text="Kai-Fu Lee" title="Kai-Fu Lee"
-xmlUrl="https://rsshub.app/twitter/user/kaifulee"
-htmlUrl="https://twitter.com/kaifulee"/>
-
+<!-- AI Experts Twitter Cluster (冗余配置) -->
+<outline text="🔴 Twitter AI Experts Cluster" title="Twitter AI Experts Cluster">
+<outline text="Elon Musk - RSSHub 主源" title="Elon Musk - RSSHub 主源" type="rss" xmlUrl="https://rsshub.app/twitter/user/elonmusk" htmlUrl="https://twitter.com/elonmusk"/>
+<outline text="Elon Musk - RSSHub 备用1" title="Elon Musk - RSSHub 备用1" type="rss" xmlUrl="https://rsshub.rssforever.com/twitter/user/elonmusk" htmlUrl="https://twitter.com/elonmusk"/>
+<outline text="Elon Musk - Nitter 主源" title="Elon Musk - Nitter 主源" type="rss" xmlUrl="https://nitter.net/elonmusk/rss" htmlUrl="https://twitter.com/elonmusk"/>
+<outline text="Sam Altman - RSSHub" title="Sam Altman - RSSHub" type="rss" xmlUrl="https://rsshub.app/twitter/user/sama" htmlUrl="https://twitter.com/sama"/>
+<outline text="Sam Altman - Nitter" title="Sam Altman - Nitter" type="rss" xmlUrl="https://nitter.net/sama/rss" htmlUrl="https://twitter.com/sama"/>
+<outline text="Yann LeCun - RSSHub" title="Yann LeCun - RSSHub" type="rss" xmlUrl="https://rsshub.app/twitter/user/ylecun" htmlUrl="https://twitter.com/ylecun"/>
+<outline text="Yann LeCun - Nitter" title="Yann LeCun - Nitter" type="rss" xmlUrl="https://nitter.net/ylecun/rss" htmlUrl="https://twitter.com/ylecun"/>
+<outline text="Andrew Ng - RSSHub" title="Andrew Ng - RSSHub" type="rss" xmlUrl="https://rsshub.app/twitter/user/AndrewYNg" htmlUrl="https://twitter.com/AndrewYNg"/>
+<outline text="Andrej Karpathy - Nitter" title="Andrej Karpathy - Nitter" type="rss" xmlUrl="https://nitter.net/karpathy/rss" htmlUrl="https://twitter.com/karpathy"/>
+<outline text="Fei-Fei Li - Nitter" title="Fei-Fei Li - Nitter" type="rss" xmlUrl="https://nitter.net/drfeifei/rss" htmlUrl="https://twitter.com/drfeifei"/>
+<outline text="Kai-Fu Lee - Nitter" title="Kai-Fu Lee - Nitter" type="rss" xmlUrl="https://nitter.net/kaifulee/rss" htmlUrl="https://twitter.com/kaifulee"/>
 </outline>
 
-<!-- YouTube AI Experts -->
-<outline text="YouTube AI Experts" title="YouTube AI Experts">
-
-<!-- Andrew Ng - DeepLearning.ai -->
-<outline type="rss" text="Andrew Ng YouTube" title="Andrew Ng YouTube"
-xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCrtf7mpeVr1APmm7rNHmugg"
-htmlUrl="https://www.youtube.com/channel/UCrtf7mpeVr1APmm7rNHmugg"/>
-
-<!-- Yann LeCun -->
-<outline type="rss" text="Yann LeCun YouTube" title="Yann LeCun YouTube"
-xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCvIXm5FbBqiLZ1r2HNpO-oA"
-htmlUrl="https://www.youtube.com/channel/UCvIXm5FbBqiLZ1r2HNpO-oA"/>
-
-<!-- OpenAI Official -->
-<outline type="rss" text="OpenAI YouTube" title="OpenAI YouTube"
-xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCXZCJLdBC09xxGZ6gcdus6w"
-htmlUrl="https://www.youtube.com/channel/UCXZCJLdBC09xxGZ6gcdus6w"/>
-
-<!-- DeepMind Official -->
-<outline type="rss" text="DeepMind YouTube" title="DeepMind YouTube"
-xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCbmNph6VwoDyBf_E2VpBqWg"
-htmlUrl="https://www.youtube.com/channel/UCbmNph6VwoDyBf_E2VpBqWg"/>
-
-<!-- Two Minute Papers -->
-<outline type="rss" text="Two Minute Papers" title="Two Minute Papers"
-xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg"
-htmlUrl="https://www.youtube.com/channel/UCbfYPyITQ-7l4upoX8nvctg"/>
-
+<!-- AI YouTube Channels (双重源) -->
+<outline text="🔵 YouTube AI Channels" title="YouTube AI Channels">
+<outline text="Andrew Ng - YouTube RSS" title="Andrew Ng - DeepLearning.ai" type="rss" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCrtf7mpeVr1APmm7rNHmugg" htmlUrl="https://www.youtube.com/channel/UCrtf7mpeVr1APmm7rNHmugg"/>
+<outline text="OpenAI - YouTube RSS" title="OpenAI - Official Channel" type="rss" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCXZCJLdBC09xxGZ6gcdus6w" htmlUrl="https://www.youtube.com/channel/UCXZCJLdBC09xxGZ6gcdus6w"/>
+<outline text="DeepMind - YouTube RSS" title="DeepMind - Official Channel" type="rss" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCbmNph6VwoDyBf_E2VpBqWg" htmlUrl="https://www.youtube.com/channel/UCbmNph6VwoDyBf_E2VpBqWg"/>
+<outline text="Two Minute Papers - YouTube RSS" title="Two Minute Papers - Károly Zsolnai" type="rss" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg" htmlUrl="https://www.youtube.com/channel/UCbfYPyITQ-7l4upoX8nvctg"/>
+<outline text="Yann LeCun - YouTube RSS" title="Yann LeCun - YouTube" type="rss" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCvIXm5FbBqiLZ1r2HNpO-oA" htmlUrl="https://www.youtube.com/channel/UCvIXm5FbBqiLZ1r2HNpO-oA"/>
 </outline>
 
 </body>

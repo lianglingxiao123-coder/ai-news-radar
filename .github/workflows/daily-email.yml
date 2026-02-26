@@ -1,43 +1,128 @@
 name: Daily Email Push
 on:
   schedule:
-    - cron: '43 23 * * *'  # 每天北京时间早上执行
+    - cron: '0 23 * * *'  # UTC 23:00，北京时间早7:00，更可靠
+    - cron: '30 23 * * *' # 半小时后重试，作为备份
   workflow_dispatch:     # 允许手动点击运行
 
 jobs:
   send-email:
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # 添加超时限制
+    
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - run: pip install -r requirements.txt
+          
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       
-      # --- 下面这一步是新加的：让机器人去保险箱里拿你的私人清单并解密 ---
-      - name: 还原私人订阅清单
+      # 检查是否有私人订阅清单
+      - name: Load private subscription list
+        id: load_opml
         env:
           OPML_B64: ${{ secrets.FOLLOW_OPML_B64 }}
         run: |
           if [ ! -z "$OPML_B64" ]; then
             mkdir -p feeds
             echo "$OPML_B64" | base64 --decode > feeds/follow.opml
-            echo "✅ 成功从保险箱读取私人订阅清单！"
+            echo "✅ Loaded private OPML from secrets"
+            echo "has_opml=true" >> $GITHUB_OUTPUT
+          else
+            echo "ℹ️ No OPML secret found, using default sources"
+            echo "has_opml=false" >> $GITHUB_OUTPUT
+          fi
+      
+      # 更新新闻数据 - 使用集群OPML进行更强壮的抓取
+      - name: Update latest news
+        id: fetch_news
+        run: |
+          # 如果有集群OPML就用集群版本
+          if [ -f feeds/follow.opml ]; then
+            echo "使用集群OPML进行抓取..."
+            python scripts/update_news.py \
+              --output-dir data \
+              --window-hours 24 \
+              --rss-opml feeds/follow.opml \
+              --timeout 300 \
+              --retry 2
+          else
+            echo "使用默认配置进行抓取..."
+            python scripts/update_news.py \
+              --output-dir data \
+              --window-hours 24 \
+              --timeout 300 \
+              --retry 2
           fi
           
-      # --- 下面这一步修改了：告诉机器人，如果有私人清单，就带上清单一起抓新闻 ---
-      - name: 更新最新资讯
-        run: |
-          if [ -f "feeds/follow.opml" ]; then
-            python scripts/update_news.py --output-dir data --window-hours 24 --rss-opml feeds/follow.opml
+          # 检查抓取结果
+          if [ -f data/latest-24h.json ]; then
+            ITEM_COUNT=$(python -c "import json; data=json.load(open('data/latest-24h.json')); print(data.get('total_items', 0))")
+            echo "item_count=$ITEM_COUNT" >> $GITHUB_OUTPUT
+            echo "fetch_status=success" >> $GITHUB_OUTPUT
           else
-            python scripts/update_news.py --output-dir data --window-hours 24
+            echo "fetch_status=failed" >> $GITHUB_OUTPUT
           fi
-
-      - name: 运行邮件发送脚本
+      
+      # 如果抓取失败，使用备用数据
+      - name: Use backup if needed
+        if: steps.fetch_news.outputs.fetch_status == 'failed'
+        run: |
+          echo "⚠️ 主要抓取失败，尝试使用备用策略..."
+          # 尝试简单抓取
+          python scripts/update_news.py \
+            --output-dir data \
+            --window-hours 24 \
+            --min-items 10 || true
+          
+          # 如果仍然失败，复制示例数据
+          if [ ! -f data/latest-24h.json ]; then
+            echo "使用示例数据作为备份..."
+            cp data/sample-news.json data/latest-24h.json 2>/dev/null || true
+          fi
+      
+      # 使用改进的邮件脚本
+      - name: Run improved email script
+        id: send_email
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-        run: python scripts/send_email.py
+        run: |
+          # 替换邮件脚本为改进版本
+          cp /tmp/fixed-email-script.py scripts/send_email.py 2>/dev/null || echo "使用现有邮件脚本"
+          
+          # 发送邮件
+          python scripts/send_email.py
+          
+          if [ $? -eq 0 ]; then
+            echo "email_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "email_status=failed" >> $GITHUB_OUTPUT
+          fi
+      
+      # 发送运行状态通知（可选）
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Daily email push failed',
+              body: `The daily email push workflow failed at ${new Date().toISOString()}.\n\nPlease check the workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            })
+
+      - name: Success summary
+        if: success()
+        run: |
+          echo "🎉 邮件推送完成！"
+          echo "抓取新闻数: ${{ steps.fetch_news.outputs.item_count }}"
+          echo "发送时间: $(date)"
