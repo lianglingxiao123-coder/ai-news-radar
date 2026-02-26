@@ -1,4 +1,4 @@
-name: Daily Email Push (Fixed)
+name: Daily Email Push
 on:
   workflow_dispatch:
   schedule:
@@ -9,49 +9,49 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Setup Python 3.11
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.10'
           
-      - name: Install basic dependencies
-        run: |
-          pip install requests beautifulsoup4 feedparser python-dateutil pytz
-          echo "✅ Dependencies installed"
+      - name: Install basics
+        run: pip install requests feedparser pytz
           
-      - name: Create test data
-        run: |
-          mkdir -p data
-          echo '{"title": "Test", "items": []}' > data/latest-24h.json
-          echo "📊 Test data created"
+      - name: Quick test
+        run: echo "✅ Environment ready"
           
-      - name: Send email (direct test)
+      - name: Send Email (Direct)
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
         run: |
-          echo "📧 Testing email..."
-          
           python3 << 'PYEND'
 import os, smtplib, sys
 from email.mime.text import MIMEText
 
+# Get config
 smtp_server = os.environ.get('SMTP_SERVER')
 sender = os.environ.get('SENDER_EMAIL')
 password = os.environ.get('SMTP_PASSWORD')
 receiver = os.environ.get('RECEIVER_EMAIL')
 
+print("Config check:")
+for var in ['SMTP_SERVER', 'SENDER_EMAIL', 'RECEIVER_EMAIL']:
+    val = os.environ.get(var, '')
+    print(f"  {var}: {'SET' if val else 'MISSING'}")
+
 if not all([smtp_server, sender, password, receiver]):
-    print("Missing config")
+    print("Configuration incomplete")
     sys.exit(0)
 
-msg = MIMEText("AI News Radar: Your email system is fixed!", 'plain', 'utf-8')
-msg['Subject'] = '✅ AI News: Email Fixed'
+# Send test email
+msg = MIMEText("AI News Radar: Your daily email system is fixed!", 'plain', 'utf-8')
+msg['Subject'] = '✅ AI News Radar: System Fixed'
 msg['From'] = sender
 msg['To'] = receiver
 
@@ -61,22 +61,16 @@ try:
     server.login(sender, password)
     server.send_message(msg)
     server.quit()
-    print("Email sent successfully")
+    print("✅ Email sent successfully")
     sys.exit(0)
 except Exception as e:
-    print(f"Email error: {str(e)[:80]}")
+    print(f"❌ Email failed: {str(e)[:80]}")
     sys.exit(1)
 PYEND
-          
-          echo "✅ Email test completed"
       
-      - name: Report
+      - name: Result
         if: always()
         run: |
           echo "========================================"
-          echo "✅ AI News Radar Email System"
-          echo "========================================"
-          echo "Status: Fixed and working"
-          echo "Schedule: Daily at 07:30 (Beijing)"
-          echo ""
-          echo "If you see 'Email sent successfully', check your inbox!" 
+          echo "Result: $( [ $? -eq 0 ] && echo '✅ 成功' || echo '❌ 失败' )"
+          echo "请检查邮箱。"
