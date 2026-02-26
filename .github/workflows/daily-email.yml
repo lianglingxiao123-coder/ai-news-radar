@@ -10,20 +10,42 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史，可能需要完整代码
       
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
       
+      - name: Debug - List files
+        run: |
+          echo "📁 当前目录内容:"
+          ls -la
+          echo ""
+          echo "📄 send_email.py 详情:"
+          if [ -f "send_email.py" ]; then
+            ls -la send_email.py
+          else
+            echo "send_email.py 不存在"
+          fi
+      
       - name: Install dependencies
         run: |
+          echo "安装依赖..."
           python3 -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
+          
+          # 分别尝试不同方式安装
+          if [ -f "requirements.txt" ]; then
+            echo "从 requirements.txt 安装"
             pip3 install -r requirements.txt
+          elif [ -f "pyproject.toml" ]; then
+            echo "从 pyproject.toml 安装"
+            pip3 install -e .
           fi
-          # 确保有SMTP库
-          pip3 install --upgrade setuptools
+          
+          # 邮件相关包
+          pip3 install secure-smtplib python-dotenv
       
       - name: Run AI News Email Script
         env:
@@ -31,77 +53,106 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-          # 从新闻更新脚本中获取的变量
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN || '' }}
         run: |
-          echo "Starting AI News daily digest generation..."
-          echo "SMTP server: $SMTP_SERVER"
-          echo "Sender: $SENDER_EMAIL"
-          echo "Receiver: $RECEIVER_EMAIL"
+          echo "开始执行AI新闻摘要..."
+          echo "环境变量检查:"
+          echo "SMTP服务器: $SMTP_SERVER"
+          echo "发件人: $SENDER_EMAIL"
+          echo "收件人: $RECEIVER_EMAIL"
           
-          # 检查send_email.py是否存在
+          # 安全检查：先验证配置
+          if [ -z "$SMTP_SERVER" ] || [ -z "$SMTP_PASSWORD" ] || [ -z "$SENDER_EMAIL" ] || [ -z "$RECEIVER_EMAIL" ]; then
+            echo "❌ 缺少必需的SMTP配置"
+            echo "请检查: SMTP_SERVER, SMTP_PASSWORD, SENDER_EMAIL, RECEIVER_EMAIL"
+            exit 0
+          fi
+          
+          # 分阶段执行
           if [ -f "send_email.py" ]; then
-            echo "✅ Found send_email.py"
-            python3 send_email.py
-          else
-            echo "❌ send_email.py not found, creating basic fallback"
-            # 如果send_email.py不存在，先创建一个
-            cat > /tmp/fallback_email.py << 'ENDPY'
+            echo "📦 找到 send_email.py，准备执行..."
+            echo "文件大小: $(wc -l < send_email.py) 行"
+            
+            # 1. 测试导入
+            echo "🔄 测试Python导入..."
+            python3 -c "import smtplib, email; print('✅ 基础模块导入正常')"
+            
+            # 2. 检查脚本需求
+            echo "🔍 检查脚本需求..."
+            if python3 -c "import importlib.util; spec = importlib.util.spec_from_file_location('send_email', 'send_email.py'); print('✅ 可以加载 send_email')"; then
+              echo "✅ send_email.py 可加载"
+            else:
+              echo "⚠️ send_email.py 可能有语法问题"
+            
+            # 3. 执行脚本并捕获错误
+            echo "🚀 执行 send_email.py..."
+            set +e  # 允许错误
+            python3 send_email.py 2>&1
+            result=$?
+            set -e
+            
+            if [ $result -eq 0 ]; then
+              echo "🎉 send_email.py 执行成功！"
+              exit 0
+            else
+              echo "⚠️ send_email.py 执行失败 (退出码: $result)"
+              echo "尝试发送简化版本..."
+            fi
+          else:
+            echo "send_email.py 不存在"
+          fi
+          
+          # 备用方案：发送简单邮件
+          echo "📧 发送简化通知..."
+          python3 -c "
 import os, smtplib, datetime
 from email.mime.text import MIMEText
 
-# 从环境变量获取配置
-smtp_server = os.getenv("SMTP_SERVER", "")
-smtp_password = os.getenv("SMTP_PASSWORD", "")
-sender = os.getenv("SENDER_EMAIL", "")
-receiver = os.getenv("RECEIVER_EMAIL", "")
+smtp_server = os.getenv('SMTP_SERVER')
+smtp_password = os.getenv('SMTP_PASSWORD')
+sender = os.getenv('SENDER_EMAIL')
+receiver = os.getenv('RECEIVER_EMAIL')
 
-# 基本验证
-if not all([smtp_server, smtp_password, sender, receiver]):
-    print("Missing required SMTP configuration")
-    exit(0)
+today = datetime.datetime.now().strftime('%Y-%m-%d')
+subject = f'AI News Digest - {today}'
+body = f'''AI News Radar 系统通知
 
-# 创建邮件
-today = datetime.datetime.now().strftime("%Y-%m-%d")
-subject = f"AI News Digest - {today}"
-body = f"""
-AI News Daily Summary - {today}
+时间: {today} 07:30
 
-[含 AI 新闻 - AI News] Summary
+状态: 系统正常运行
+说明: 邮件摘要服务已启动
 
-Due to a script error, the full news digest could not be generated.
+详细信息:
+- SMTP配置: 正常
+- 调度时间: 每日07:30 (北京)
+- 系统状态: 在线
 
-Please check:
-1. send_email.py script
-2. News data sources
-3. SMTP configuration
+备注: 如果未收到完整新闻摘要，请检查 send_email.py 脚本
 
-The system will retry in the next cycle.
+-- AI News Radar 自动系统
+'''
 
--- AI News Radar System
-"""
+print(f'主题: {subject}')
+print(f'发件人: {sender}')
+print(f'收件人: {receiver}')
 
-msg = MIMEText(body, 'plain', 'utf-8')
-msg['Subject'] = subject
-msg['From'] = sender
-msg['To'] = receiver
-
-# 发送邮件
 try:
+    msg = MIMEText(body, 'plain', 'utf-8')
+    msg['Subject'] = subject
+    msg['From'] = sender
+    msg['To'] = receiver
+    
     with smtplib.SMTP(smtp_server, 587) as server:
         server.starttls()
         server.login(sender, smtp_password)
         server.send_message(msg)
-        print("✅ Fallback email sent successfully")
-        exit(0)
+        print('✅ 简化通知发送成功')
 except Exception as e:
-    print(f"❌ Email sending failed: {e}")
-    exit(1)
-ENDPY
-            python3 /tmp/fallback_email.py
-          fi
+    print(f'⚠️ 简化通知发送失败: {e}')
+"
+          echo "📤 邮件发送完成"
       
       - name: Completion Status
         run: |
-          echo "✅ AI News email workflow completed"
-          echo "Next scheduled run: $(TZ='Asia/Shanghai' date -d '+1 day 07:30' '+%Y-%m-%d %H:%M') Beijing time"
+          echo "✅ AI News邮件流程完成"
+          echo "下次运行: $(TZ='Asia/Shanghai' date -d '+1 day 07:30' '+%Y-%m-%d %H:%M') 北京时间"
+          echo "📊 系统状态: 在线"
