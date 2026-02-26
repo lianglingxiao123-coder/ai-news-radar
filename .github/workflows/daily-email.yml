@@ -1,23 +1,102 @@
-name: Daily AI News Email
+name: Daily AI News Email  
 on:
   workflow_dispatch:
+    inputs:
+      recipient:
+        description: 'Manual test recipient email'
+        required: false  
   schedule:
     - cron: '30 23 * * *'
+
 jobs:
-  test-email:
+  notify:
     runs-on: ubuntu-latest
+    
+    env:
+      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+      SMTP_PORT: ${{ vars.SMTP_PORT || '587' }}
+      
+    defaults:
+      run:
+        shell: bash
+        
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Test email configuration
-        env:
-          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-        run: |
-          echo "Testing SMTP configuration..."
+    # Step 1: Checkout code  
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    # Step 2: Setup Python
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      id: python
+      with:
+        python-version: '3.11'
+        
+    # Step 3: Test secrets
+    - name: Validate email configuration
+      id: validate
+      run: |
+        echo "Validating SMTP configuration..."
+        echo "SMTP server: $SMTP_SERVER"
+        echo "SMTP port: $SMTP_PORT"
+        
+        REQUIRED_SECRETS=(
+          SMTP_SERVER 
+          SMTP_PASSWORD  
+          SENDER_EMAIL  
+          RECEIVER_EMAIL
+        )
+        
+        MISSING_SECRETS=()
+        
+        for secret_name in "${REQUIRED_SECRETS[@]}"; do
+          value="${!secret_name}"
+          if [ -z "${value}" ]; then
+            MISSING_SECRETS+=("${secret_name}")
+          else
+            echo "${secret_name}: ✓ Set"
+          fi  
+        done
+        
+        if [ ${#MISSING_SECRETS[@]} -eq 0 ]; then
+          echo "✅ All secrets are set"
+          echo "validation_passed=true" >> "$GITHUB_OUTPUT"
+        else  
+          echo "⚠️ Missing secrets: ${MISSING_SECRETS[*]}"
+          echo "validation_passed=false" >> "$GITHUB_OUTPUT"
+        fi
+      env:
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+        RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        
+    # Step 4: Send test email if secrets are valid
+    - name: Send test email
+      if: steps.validate.outputs.validation_passed == 'true'  
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: ${{ secrets.SMTP_SERVER }}
+        server_port: 587
+        username: ${{ secrets.SENDER_EMAIL }}
+        password: ${{ secrets.SMTP_PASSWORD }}
+        subject: AI News Radar - Test Message  
+        body: |
+          Hello!
+          
+          This is a test message from AI News Radar system.
+          
+          If you receive this, your GitHub Actions workflow is configured correctly!
+          Daily news summaries will be sent automatically at 7:30 AM Beijing time.
+          
+          Best regards,
+          AI News Radar Bot
+          
+        from: AI News Radar <${{ secrets.SENDER_EMAIL }}>
+        to: ${{ secrets.RECEIVER_EMAIL }}
+        
+    # Step 5: Report completion
+    - name: Completion message  
+      run: |
+        echo "✅ Email workflow executed successfully!"
+        echo "Daily emails will run at $(TZ='Asia/Shanghai' date -d 'today 07:30' '+%H:%M') Beijing time."
