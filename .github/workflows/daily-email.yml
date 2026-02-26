@@ -8,7 +8,6 @@ jobs:
   send-email:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: false
     
     steps:
       - name: Checkout repository
@@ -17,175 +16,145 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # 使用较新的 Python 版本
+          python-version: '3.11'
           
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt || echo "requirements.txt安装失败，继续"
+          pip install -r requirements.txt
       
-      # 先测试 SMTP 连接，不成功就提前退出
-      - name: Test SMTP connectivity
-        id: test_smtp
-        env:
-          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-        run: |
-          echo "🧪 测试SMTP连接性..."
-          
-          test_script=$(cat << 'EOF'
-import os, smtplib, ssl
-import sys
-
-smtp_server = os.environ.get('SMTP_SERVER')
-sender_email = os.environ.get('SENDER_EMAIL')
-smtp_password = os.environ.get('SMTP_PASSWORD')
-
-if not all([smtp_server, sender_email, smtp_password]):
-    print("❌ 缺少必要的SMTP配置")
-    sys.exit(1)
-
-print(f"测试连接: {smtp_server}")
-
-success = False
-methods = [
-    (587, 'STARTTLS'),
-    (465, 'SSL'),
-]
-
-for port, method in methods:
-    try:
-        print(f"尝试端口 {port} ({method})...")
-        if method == 'SSL':
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(smtp_server, port, context=context, timeout=10) as server:
-                server.noop()  # 简单测试连接
-        else:
-            with smtplib.SMTP(smtp_server, port, timeout=10) as server:
-                server.ehlo()
-                server.noop()
-        print(f"✅ 端口 {port} 可用")
-        success = True
-        break
-    except Exception as e:
-        if "connection refused" in str(e).lower() or "timed out" in str(e).lower():
-            print(f"⚠️ 端口 {port} 不可用: {str(e)[:50]}")
-        else:
-            print(f"⚠️ 端口 {port} 错误: {str(e)[:50]}")
-            success = True  # 连接建立但有其他错误也算通过
-
-print("\n" + ("✅ SMTP连接可用" if success else "❌ SMTP连接测试失败"))
-sys.exit(0 if success else 1)
-EOF
-          )
-          
-          python3 -c "$test_script"
-          
-          if [ $? -eq 0 ]; then
-            echo "smtp_test=passed" >> $GITHUB_OUTPUT
-          else:
-            echo "smtp_test=failed" >> $GITHUB_OUTPUT
-      
-      # 如果 SMTP 测试失败，尝试使用备用邮件服务
-      - name: Setup fallback email service
-        if: steps.test_smtp.outputs.smtp_test == 'failed'
-        run: |
-          echo "⚠️ SMTP直连失败，使用后备方案..."
-          echo "后备方案: SendGrid/Resend API 或本地通知"
-          
-          # 简化版本：使用GitHub API创建Issue作为通知
-          echo "将创建GitHub Issue作为邮件替代"
-      
-      - name: Load and fetch news
-        id: fetch_news
+      # 加载OPML配置
+      - name: Load OPML configuration
         env:
           OPML_B64: ${{ secrets.FOLLOW_OPML_B64 }}
         run: |
-          # 加载OPML配置
           if [ ! -z "$OPML_B64" ]; then
             echo "加载私有OPML配置..."
             mkdir -p feeds
-            echo "$OPML_B64" | base64 --decode > feeds/follow.opml 2>/dev/null
-          fi
-          
-          # 使用简化抓取，降低失败率
-          echo "开始新闻抓取..."
-          python scripts/update_news.py \
-            --output-dir data \
-            --window-hours 24 \
-            --silent \
-            --timeout 300 || echo "抓取可能失败，继续执行"
-          
-          # 生成更简单的邮件内容
-          echo "生成邮件预览..."
-          if [ -f data/latest-24h.json ]; then
-            ITEM_COUNT=$(python3 -c "import json; data=json.load(open('data/latest-24h.json')); print(data.get('total_items', 0))")
-            echo "item_count=$ITEM_COUNT" >> $GITHUB_OUTPUT
+            echo "$OPML_B64" | base64 --decode > feeds/follow.opml 2>/dev/null || echo "OPML解码失败"
           fi
       
-      # 兼容性邮件发送
-      - name: Send universal email
-        id: send_compatible_email
+      # 抓取新闻
+      - name: Fetch latest news
+        run: |
+          if [ -f feeds/follow.opml ]; then
+            python scripts/update_news.py \
+              --output-dir data \
+              --window-hours 24 \
+              --rss-opml feeds/follow.opml \
+              --timeout 300
+          else
+            python scripts/update_news.py \
+              --output-dir data \
+              --window-hours 24 \
+              --timeout 300
+          fi
+      
+      # 发送邮件（简化但可靠）
+      - name: Send email (simplified)
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
         run: |
-          echo "📧 兼容性邮件发送..."
+          echo "📧 邮件发送开始..."
           
-          # 目的地也测试兼容脚本
-          cp /tmp/compatible-email.py scripts/send_email.py
+          # 创建简单的HTML邮件内容
+          cat > send_email_simple.py << 'EOF'
+import os, smtplib, ssl, json, sys
+from email.mime.text import MIMEText
+from datetime import datetime
+
+def create_html():
+    try:
+        with open('data/latest-24h.json', 'r') as f:
+            data = json.load(f)
+        items = data.get('items', [])
+        
+        html = '<h2>🤖 AI新闻日报</h2>'
+        html += f'<p>生成时间: {datetime.now().strftime("%Y-%m-%d %H:%M")}</p>'
+        
+        # 添加前15条新闻
+        for i, item in enumerate(items[:15]):
+            if isinstance(item, dict):
+                title = item.get('title', '无标题')
+                link = item.get('url', item.get('link', '#'))
+                source = item.get('source_name', item.get('site_name', '未知来源'))
+                html += f'<p><a href="{link}">{i+1}. {title[:80]}</a><br><small>来源: {source}</small></p>'
+        
+        html += '<hr><p style="color:gray">Powered by AI News Radar</p>'
+        return html
+    except:
+        return "<h2>AI新闻日报</h2><p>今日无数据</p>"
+
+def main():
+    smtp_server = os.getenv('SMTP_SERVER')
+    smtp_port = int(os.getenv('SMTP_PORT', '587'))
+    sender_email = os.getenv('SENDER_EMAIL')
+    smtp_password = os.getenv('SMTP_PASSWORD')
+    receiver_email = os.getenv('RECEIVER_EMAIL')
+    
+    if not all([smtp_server, sender_email, smtp_password, receiver_email]):
+        print("❌ 缺少SMTP配置，请检查GitHub Secrets")
+        return False
+    
+    msg = MIMEText(create_html(), 'html', 'utf-8')
+    msg['Subject'] = f'AI日报 {datetime.now().strftime("%m/%d")}'
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    
+    try:
+        # 尝试STARTTLS
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, smtp_password)
+        server.send_message(msg)
+        server.quit()
+        print("✅ 邮件发送成功")
+        return True
+    except Exception as e:
+        print(f"⚠️ STARTTLS失败: {str(e)[:50]}")
+        try:
+            # 备选: SSL
+            context = ssl.create_default_context()
+            server = smtplib.SMTP_SSL(smtp_server, 465, context=context)
+            server.login(sender_email, smtp_password)
+            server.send_message(msg)
+            server.quit()
+            print("✅ 邮件发送成功 (SSL)")
+            return True
+        except Exception as e2:
+            print(f"❌ 所有方式失败: {str(e2)[:50]}")
+            return False
+
+if __name__ == "__main__":
+    if main():
+        sys.exit(0)
+    else:
+        sys.exit(1)
+EOF
           
-          # 运行发送
-          if python3 scripts/send_email.py; then
-            echo "email_status=success" >> $GITHUB_OUTPUT
-            echo "✅ 邮件发送成功"
-          else
-            echo "email_status=failed" >> $GITHUB_OUTPUT
-            echo "⚠️ 邮件发送失败"
-            
-            # 替代方案：创建GitHub Issue通知
-            echo "创建GitHub Issue作为替代通知..."
-            
-            # 简化版本：直接输出到日志
-            echo "📋 每日新闻摘要（在此处替代邮件）"
-            echo "======================================"
-            if [ -f data/latest-24h.json ]; then
-              python3 -c "
-import json
-try:
-    with open('data/latest-24h.json', 'r') as f:
-        data = json.load(f)
-    items = data.get('items', [data])[:10]
-    for i, item in enumerate(items):
-        if isinstance(item, dict):
-            title = item.get('title', '无标题')
-            link = item.get('url', item.get('link', '#'))
-            source = item.get('source_name', item.get('site_name', ''))
-            print(f'{i+1}. {title[:80]}...')
-            print(f'   来源: {source}, 链接: {link[:60]}...')
-except:
-    print('无法解析数据文件')
-              "
-            else:
-              echo "无可用数据"
-          fi
+          python send_email_simple.py
       
-      # 清理和通知
-      - name: Final summary
+      - name: Notify on success
+        if: success()
         run: |
-          echo "📊 工作流执行总结:"
-          echo "- SMTP测试: ${{ steps.test_smtp.outputs.smtp_test }}"
-          echo "- 新闻条数: ${{ steps.fetch_news.outputs.item_count || 0 }}"
-          echo "- 邮件状态: ${{ steps.send_compatible_email.outputs.email_status || 'unknown' }}"
-          
-          if [[ "${{ steps.send_compatible_email.outputs.email_status }}" == "success" ]]; then
-            echo "🎉 邮件工作流执行完成！你应该很快会收到邮件。"
-          else
-            echo "⚠️ 邮件发送可能失败，请检查GitHub Secrets配置。"
-            echo "请访问 https://github.com/ ${{ github.repository }}/settings/secrets/actions"
-            echo "配置: SMTP_SERVER, SENDER_EMAIL, SMTP_PASSWORD, RECEIVER_EMAIL"
-          fi
+          echo "🎉 邮件工作流执行完成！"
+          echo "如果邮件未收到，请检查:"
+          echo "1. GitHub Secrets配置 (SMTP_SERVER, SENDER_EMAIL, SMTP_PASSWORD, RECEIVER_EMAIL)"
+          echo "2. 邮件可能进入了垃圾箱"
+          echo "3. 网络延迟，稍等片刻"
+      
+      - name: Log on failure
+        if: failure()
+        run: |
+          echo "⚠️ 邮件发送失败"
+          echo "常见原因:"
+          echo "1. GitHub Secrets未配置"
+          echo "2. SMTP服务器连接被屏蔽"
+          echo "3. 邮箱授权密码错误"
+          echo ""
+          echo "请配置以下Secrets:"
+          echo "SMTP_SERVER, SENDER_EMAIL, SMTP_PASSWORD, RECEIVER_EMAIL"
