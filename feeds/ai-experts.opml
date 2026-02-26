@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+<head>
+<title>AI Experts Daily Updates</title>
+<dateCreated>Wed, 26 Feb 2026 12:00:00 GMT</dateCreated>
+<ownerName>AI News Radar</ownerName>
+</head>
+<body>
+
+<!-- Twitter AI Experts via RSSHub -->
+<outline text="Twitter AI Experts" title="Twitter AI Experts">
+
+<!-- Elon Musk -->
+<outline type="rss" text="Elon Musk" title="Elon Musk"
+xmlUrl="https://rsshub.app/twitter/user/elonmusk"
+htmlUrl="https://twitter.com/elonmusk"/>
+
+<!-- Sam Altman (OpenAI) -->
+<outline type="rss" text="Sam Altman" title="Sam Altman"
+xmlUrl="https://rsshub.app/twitter/user/sama"
+htmlUrl="https://twitter.com/sama"/>
+
+<!-- Yann LeCun (Meta AI) -->
+<outline type="rss" text="Yann LeCun" title="Yann LeCun"
+xmlUrl="https://rsshub.app/twitter/user/ylecun"
+htmlUrl="https://twitter.com/ylecun"/>
+
+<!-- Andrew Ng -->
+<outline type="rss" text="Andrew Ng" title="Andrew Ng"
+xmlUrl="https://rsshub.app/twitter/user/AndrewYNg"
+htmlUrl="https://twitter.com/AndrewYNg"/>
+
+<!-- Andrej Karpathy -->
+<outline type="rss" text="Andrej Karpathy" title="Andrej Karpathy"
+xmlUrl="https://rsshub.app/twitter/user/karpathy"
+htmlUrl="https://twitter.com/karpathy"/>
+
+<!-- Fei-Fei Li -->
+<outline type="rss" text="Fei-Fei Li" title="Fei-Fei Li"
+xmlUrl="https://rsshub.app/twitter/user/drfeifei"
+htmlUrl="https://twitter.com/drfeifei"/>
+
+<!-- 李开复 -->
+<outline type="rss" text="Kai-Fu Lee" title="Kai-Fu Lee"
+xmlUrl="https://rsshub.app/twitter/user/kaifulee"
+htmlUrl="https://twitter.com/kaifulee"/>
+
+</outline>
+
+<!-- YouTube AI Experts -->
+<outline text="YouTube AI Experts" title="YouTube AI Experts">
+
+<!-- Andrew Ng - DeepLearning.ai -->
+<outline type="rss" text="Andrew Ng YouTube" title="Andrew Ng YouTube"
+xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCrtf7mpeVr1APmm7rNHmugg"
+htmlUrl="https://www.youtube.com/channel/UCrtf7mpeVr1APmm7rNHmugg"/>
+
+<!-- Yann LeCun -->
+<outline type="rss" text="Yann LeCun YouTube" title="Yann LeCun YouTube"
+xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCvIXm5FbBqiLZ1r2HNpO-oA"
+htmlUrl="https://www.youtube.com/channel/UCvIXm5FbBqiLZ1r2HNpO-oA"/>
+
+<!-- OpenAI Official -->
+<outline type="rss" text="OpenAI YouTube" title="OpenAI YouTube"
+xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCXZCJLdBC09xxGZ6gcdus6w"
+htmlUrl="https://www.youtube.com/channel/UCXZCJLdBC09xxGZ6gcdus6w"/>
+
+<!-- DeepMind Official -->
+<outline type="rss" text="DeepMind YouTube" title="DeepMind YouTube"
+xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCbmNph6VwoDyBf_E2VpBqWg"
+htmlUrl="https://www.youtube.com/channel/UCbmNph6VwoDyBf_E2VpBqWg"/>
+
+<!-- Two Minute Papers -->
+<outline type="rss" text="Two Minute Papers" title="Two Minute Papers"
+xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg"
+htmlUrl="https://www.youtube.com/channel/UCbfYPyITQ-7l4upoX8nvctg"/>
+
+</outline>
+
+</body>
+</opml>
