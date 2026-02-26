@@ -1,86 +1,60 @@
-name: Daily Email Push
+name: Daily AI News Email
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
   schedule:
     - cron: '30 23 * * *'
 
 jobs:
-  send-email:
+  send-test-email:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
-      - name: Install packages
-        run: pip install requests feedparser
-        
-      - name: Create email script
+      - name: Send email
+        env:
+          SERVER: ${{ secrets.SMTP_SERVER }}
+          PASS: ${{ secrets.SMTP_PASSWORD }}
+          FROM: ${{ secrets.SENDER_EMAIL }}
+          TO: ${{ secrets.RECEIVER_EMAIL }}
         run: |
-          cat > /tmp/send_test.py << 'PYEOF'
-import os, smtplib, sys
+          echo "Testing email configuration..."
+          
+          # 创建测试文件
+          cat > test_email.py << 'EOF_INNER'
+import os, smtplib
 from email.mime.text import MIMEText
 
-def send_test():
-    smtp_server = os.environ.get('SMTP_SERVER')
-    sender = os.environ.get('SENDER_EMAIL')
-    password = os.environ.get('SMTP_PASSWORD')
-    receiver = os.environ.get('RECEIVER_EMAIL')
-    
-    print("📧 Email Configuration Test")
-    print(f"  Server: {smtp_server}")
-    print(f"  From: {sender}")
-    print(f"  To: {receiver}")
-    
-    if not all([smtp_server, sender, password, receiver]):
-        print("❌ Missing configuration")
-        return False
-    
-    # Create email
-    msg = MIMEText("测试邮件：你的AI新闻雷达每日推送系统已修复。明日开始7:30自动推送包含Twitter/YouTube/RSS的AI新闻。", 'plain', 'utf-8')
-    msg['Subject'] = '✅ AI新闻雷达：系统修复验证'
-    msg['From'] = sender
-    msg['To'] = receiver
-    
-    try:
-        # Try port 587
-        server = smtplib.SMTP(smtp_server, 587)
-        server.starttls()
-        server.login(sender, password)
-        server.send_message(msg)
-        server.quit()
-        print("✅ Email sent successfully!")
-        return True
-    except Exception as e:
-        print(f"❌ SMTP error: {str(e)[:100]}")
-        return False
+srv = os.environ.get('SERVER')
+frm = os.environ.get('FROM')
+pwd = os.environ.get('PASS')
+to = os.environ.get('TO')
 
-if __name__ == "__main__":
-    success = send_test()
-    sys.exit(0 if success else 1)
-PYEOF
+print("Config:")
+print(f"  Server: {srv}")
+print(f"  From: {frm}")
+print(f"  To: {to}")
+
+if not all([srv, frm, pwd, to]):
+    print("Configuration incomplete")
+    exit(0)
+
+msg = MIMEText("AI News Radar test email", 'plain', 'utf-8')
+msg['Subject'] = 'Test from AI News Radar'
+msg['From'] = frm
+msg['To'] = to
+
+try:
+    conn = smtplib.SMTP(srv, 587)
+    conn.starttls()
+    conn.login(frm, pwd)
+    conn.send_message(msg)
+    conn.quit()
+    print("Email sent")
+    exit(0)
+except Exception as e:
+    print(f"Error: {e}")
+    exit(1)
+EOF_INNER
           
-      - name: Run email test
-        env:
-          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-        run: python /tmp/send_test.py
-      
-      - name: Report
-        if: always()
-        run: |
-          echo "========================================"
-          echo "AI新闻雷达 - 邮箱系统测试报告"
-          echo "========================================"
-          echo "时间: $(date)"
-          echo "结果: $( [ $? -eq 0 ] && echo '✅ 成功' || echo '❌ 失败' )"
-          echo ""
-          echo "如果看到'Email sent successfully'，请在邮箱中确认。"
-          echo "📅 系统将从明日起每日7:30自动推送。"
+          python3 test_email.py
