@@ -1,61 +1,75 @@
-name: 'Daily AI News Email Push'
+name: Daily AI News Email
 on:
   workflow_dispatch:
   schedule:
     - cron: '30 23 * * *'
 
 jobs:
-  test-smtp:
+  send-test-email:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
       
-      - name: 'Send test email'
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Test SMTP Connection
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASSWORD }}
-          SENDER: ${{ secrets.SENDER_EMAIL }}
-          RECEIVER: ${{ secrets.RECEIVER_EMAIL }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
         run: |
-          echo "Starting email test..."
+          echo "Testing email configuration..."
           
-          # 写Python代码到文件
+          # 创建Python测试脚本
           python_code='
 import os, smtplib, sys
 from email.mime.text import MIMEText
 
-server = os.environ.get("SMTP_SERVER")
-sender = os.environ.get("SENDER")
-password = os.environ.get("SMTP_PASS")
-receiver = os.environ.get("RECEIVER")
+s = os.environ.get("SMTP_SERVER")
+f = os.environ.get("SENDER_EMAIL")
+p = os.environ.get("SMTP_PASSWORD")
+r = os.environ.get("RECEIVER_EMAIL")
 
-print("SMTP Configuration:")
-print(f"  Server: {server}")
-print(f"  Sender: {sender}")
-print(f"  Receiver: {receiver}")
+print("SMTP Configuration Check:")
+print("Server:", s)
+print("Sender:", f)
+print("Receiver:", r)
 
-if not all([server, sender, password, receiver]):
-    print("Missing SMTP configuration in GitHub Secrets")
+if not all([s, f, p, r]):
+    print("Configuration incomplete.")
     sys.exit(0)
 
-msg = MIMEText("这是AI新闻雷达的测试邮件", "plain", "utf-8")
-msg["Subject"] = "✅ AI News Radar: Test Email"
-msg["From"] = sender
-msg["To"] = receiver
+msg = MIMEText("Test email from AI News Radar system", "plain", "utf-8")
+msg["Subject"] = "AI News Radar Test"
+msg["From"] = f
+msg["To"] = r
 
 try:
-    s = smtplib.SMTP(server, 587)
-    s.starttls()
-    s.login(sender, password)
-    s.send_message(msg)
-    s.quit()
-    print("SUCCESS: Email sent")
+    conn = smtplib.SMTP(s, 587)
+    conn.starttls()
+    conn.login(f, p)
+    conn.send_message(msg)
+    conn.quit()
+    print("SUCCESS: Email sent successfully")
     sys.exit(0)
 except Exception as e:
-    print(f"FAILED: {str(e)[:80]}")
+    print("ERROR:", str(e))
     sys.exit(1)
           '
           
-          # 写入临时文件执行
-          echo "$python_code" > /tmp/test_email.py
-          python3 /tmp/test_email.py
+          # 写入文件执行
+          echo "$python_code" > /tmp/email_test.py
+          python3 /tmp/email_test.py
+      
+      - name: Report Result
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ Email test successful!"
+          else
+            echo "⚠️ Email test failed - check SMTP configuration"
+          fi
