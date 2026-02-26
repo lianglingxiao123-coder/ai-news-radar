@@ -3,77 +3,23 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '30 23 * * *'
-
 jobs:
-  send-test-email:
+  send-email:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
-      - name: Test SMTP Connection
-        env:
-          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-        run: |
-          echo "Testing email configuration..."
-          
-          # 直接使用heredoc写入Python文件
-          cat > /tmp/test_email.py << 'PYEOF'
-import os
-import smtplib
-import sys
-from email.mime.text import MIMEText
-
-# Get SMTP configuration
-server = os.environ.get('SMTP_SERVER')
-sender = os.environ.get('SENDER_EMAIL')
-password = os.environ.get('SMTP_PASSWORD')
-receiver = os.environ.get('RECEIVER_EMAIL')
-
-print('SMTP Configuration Check:')
-print(f'Server: {server}')
-print(f'Sender: {sender}')
-print(f'Receiver: {receiver}')
-
-if not all([server, sender, password, receiver]):
-    print('Missing SMTP configuration')
-    sys.exit(0)
-
-# Create email
-msg = MIMEText('Test email from AI News Radar', 'plain', 'utf-8')
-msg['Subject'] = 'AI News Radar Test'
-msg['From'] = sender
-msg['To'] = receiver
-
-try:
-    # Try connection
-    conn = smtplib.SMTP(server, 587)
-    conn.starttls()
-    conn.login(sender, password)
-    conn.send_message(msg)
-    conn.quit()
-    print('SUCCESS: Email sent')
-    sys.exit(0)
-except Exception as e:
-    print(f'ERROR: {e}')
-    sys.exit(1)
-PYEOF
-          
-          # 执行Python脚本
-          python3 /tmp/test_email.py
-      
-      - name: Report Result
-        run: |
-          if [ $? -eq 0 ]; then
-            echo "✅ Email test successful!"
-          else
-            echo "⚠️ Email test failed"
-          fi
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+    - name: Send test email
+      env:
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+        RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+      run: |
+        echo "Test SMTP configuration..."
+        # 使用base64编码避免引号问题
+        python_code="aW1wb3J0IG9zLCBzbXRwbGliCmltcG9ydCBzeXMKZnJvbSBlbWFpbC5taW1lLnRleHQgaW1wb3J0IE1pbWVUZXh0CgpzZXJ2ZXIgPSBvcy5lbnZpcm9uLmdldCgnU01UUF9TRVJWRVInKQpzZW5kZXIgPSBvcy5lbnZpcm9uLmdldCgnU0VOREVSX0VNQUlMJykKcGFzc3dvcmQgPSBvcy5lbnZpcm9uLmdldCgnU01UUF9QQVNTV09SRCcpCnJlY2VpdmVyID0gb3MuZW52aXJvbi5nZXQoJ1JFQ0VJVkVSX0VNQUlMJykKCnByaW50KCdDT05GSUc6JykKcHJpbnQoZiJTZXJ2ZXI6IHtzZXJ2ZXJ9IikKcHJpbnQoZiJTZW5kZXI6IHtzZW5kZXJ9IikKcHJpbnQoZiJSZWNlaXZlcjoge3JlY2VpdmVyfSIpCgppZiBub3QgYWxsKFtzZXJ2ZXIsIHNlbmRlciwgcGFzc3dvcmQsIHJlY2VpdmVyXSk6CiAgICBwcmludCgnTWlzc2luZyBjb25maWcnKQogICAgc3lzLmV4aXQoMCkKCm1zZyA9IE1pbWVUZXh0KCdBSSBOZXdzIFJhZGFyIHRlc3QgZW1haWwnLCAncGxhaW4nLCAndXRmLTgnKQptc2dbJ1N1YmplY3QnXSA9ICdBSSBOZXdzIFJhZGFyIFRlc3QnCm1zZ1snRnJvbSddID0gc2VuZGVyCm1zZ1snVG8nXSA9IHJlY2VpdmVyCgp0cnk6CiAgICBzID0gc210cGxpYi5TTVRQKHNlcnZlciwgNTg3KQogICAgcy5zdGFydHRscygpCiAgICBzLmxvZ2luKHNlbmRlciwgcGFzc3dvcmQpCiAgICBzLnNlbmRfbWVzc2FnZShtc2cpCiAgICBzLnF1aXQoKQogICAgcHJpbnQoJ0VtYWlsIHNlbnQgU1VDQ0VTUycpCiAgICBzeXMuZXhpdCgwKQpleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICBwcmludChmJ0VSUk9SOiB7c3RyKGUpWzo4MF19JykKICAgIHN5cy5leGl0KDEpCg=="
+        python3 -c "$(echo "$python_code" | base64 -d)"
