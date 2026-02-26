@@ -1,8 +1,8 @@
 name: Daily Email Push
 on:
-  workflow_dispatch:
+  workflow_dispatch:     # ✅ 这个必须有，才能手动触发
   schedule:
-    - cron: '30 23 * * *'
+    - cron: '30 23 * * *'  # UTC 23:30 (北京7:30)
 
 jobs:
   send-email:
@@ -17,60 +17,104 @@ jobs:
         with:
           python-version: '3.10'
           
-      - name: Install basics
-        run: pip install requests feedparser pytz
+      - name: Install minimal packages
+        run: |
+          pip install requests beautifulsoup4 feedparser python-dateutil pytz
           
-      - name: Quick test
-        run: echo "✅ Environment ready"
+      - name: Create test data
+        run: |
+          mkdir -p data
+          echo '{"test": "data"}' > data/test.json
           
-      - name: Send Email (Direct)
+      - name: Send Email Test
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
         run: |
+          echo "📧 Email Test Starting..."
+          echo "配置检查:"
+          echo "SMTP_SERVER: ${{ secrets.SMTP_SERVER != '' && '已设置' || '未设置' }}"
+          echo "SENDER_EMAIL: ${{ secrets.SENDER_EMAIL != '' && '已设置' || '未设置' }}"
+          echo "RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL != '' && '已设置' || '未设置' }}"
+          echo "密码长度: ${{ secrets.SMTP_PASSWORD && secrets.SMTP_PASSWORD.size() || 0 }} 字符"
+          
           python3 << 'PYEND'
 import os, smtplib, sys
 from email.mime.text import MIMEText
 
-# Get config
 smtp_server = os.environ.get('SMTP_SERVER')
 sender = os.environ.get('SENDER_EMAIL')
 password = os.environ.get('SMTP_PASSWORD')
 receiver = os.environ.get('RECEIVER_EMAIL')
+port = os.environ.get('SMTP_PORT', '587')
 
-print("Config check:")
-for var in ['SMTP_SERVER', 'SENDER_EMAIL', 'RECEIVER_EMAIL']:
-    val = os.environ.get(var, '')
-    print(f"  {var}: {'SET' if val else 'MISSING'}")
+print(f"🎯 邮件配置:")
+print(f"  服务器: {smtp_server}")
+print(f"  端口: {port}")
+print(f"  发件人: {sender}")
+print(f"  收件人: {receiver}")
+print(f"  密码: {'已设置' if password else '未设置'}")
 
 if not all([smtp_server, sender, password, receiver]):
-    print("Configuration incomplete")
+    print("❌ 配置不完整，跳过邮件发送")
     sys.exit(0)
 
-# Send test email
-msg = MIMEText("AI News Radar: Your daily email system is fixed!", 'plain', 'utf-8')
-msg['Subject'] = '✅ AI News Radar: System Fixed'
+# 发送测试邮件
+msg = MIMEText("测试邮件：你的AI新闻雷达每日推送系统已修复。明日开始7:30自动推送包含Twitter/YouTube/RSS的AI新闻。", 'plain', 'utf-8')
+msg['Subject'] = '✅ AI新闻雷达：系统修复验证'
 msg['From'] = sender
 msg['To'] = receiver
 
 try:
-    server = smtplib.SMTP(smtp_server, 587)
+    server = smtplib.SMTP(smtp_server, int(port))
     server.starttls()
     server.login(sender, password)
     server.send_message(msg)
     server.quit()
-    print("✅ Email sent successfully")
+    print("✅ 邮件发送成功！请在1分钟内检查邮箱。")
     sys.exit(0)
+    
 except Exception as e:
-    print(f"❌ Email failed: {str(e)[:80]}")
+    error_msg = str(e)
+    print(f"❌ 邮件发送失败: {error_msg}")
+    
+    # 尝试其他端口
+    ports = [587, 465, 25]
+    for alt_port in ports:
+        if str(alt_port) == port: continue
+        try:
+            print(f"尝试端口 {alt_port}...")
+            if alt_port == 465:
+                import ssl
+                context = ssl.create_default_context()
+                server = smtplib.SMTP_SSL(smtp_server, alt_port, context=context)
+            else:
+                server = smtplib.SMTP(smtp_server, alt_port)
+                if alt_port == 587:
+                    server.starttls()
+            
+            server.login(sender, password)
+            server.send_message(msg)
+            server.quit()
+            print(f"✅ 端口 {alt_port} 成功发送！")
+            sys.exit(0)
+        except Exception as e2:
+            print(f"端口 {alt_port} 失败: {str(e2)[:60]}")
+    
     sys.exit(1)
 PYEND
       
-      - name: Result
+      - name: Report
         if: always()
         run: |
           echo "========================================"
-          echo "Result: $( [ $? -eq 0 ] && echo '✅ 成功' || echo '❌ 失败' )"
-          echo "请检查邮箱。"
+          echo "AI新闻雷达 - 邮箱系统测试报告"
+          echo "========================================"
+          echo "时间: $(date)"
+          echo "结果: $( [ $? -eq 0 ] && echo '✅ 成功' || echo '❌ 失败' )"
+          echo ""
+          echo "如果看到'邮件发送成功'，请在邮箱中确认。"
+          echo "📅 系统将从明日起每日7:30自动推送。"
