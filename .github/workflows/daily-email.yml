@@ -8,10 +8,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
+        
+    - name: Install dependencies
+      run: python3 -m pip install --upgrade pip
+    
     - name: Send test email
       env:
         SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
@@ -20,6 +25,42 @@ jobs:
         RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
       run: |
         echo "Testing SMTP configuration..."
-        # 正确的base64编码Python代码，包含MIMEText正确导入
-        python_code="aW1wb3J0IG9zLCBzbXRwbGliLCBzeXMKZnJvbSBlbWFpbC5taW1lLnRleHQgaW1wb3J0IE1JTUVUZXh0CgpzZXJ2ZXIgPSBvcy5lbnZpcm9uLmdldCgnU01UUF9TRVJWRVInKQpzZW5kZXIgPSBvcy5lbnZpcm9uLmdldCgnU0VOREVSX0VNQUlMJykKcGFzc3dvcmQgPSBvcy5lbnZpcm9uLmdldCgnU01UUF9QQVNTV09SRCcpCnJlY2VpdmVyID0gb3MuZW52aXJvbi5nZXQoJ1JFQ0VJVkVSX0VNQUlMJykKCnByaW50KCdDT05GSUc6JykKcHJpbnQoZidTZXJ2ZXI6IHtzZXJ2ZXJ9JykKcHJpbnQoZidTZW5kZXI6IHtzZW5kZXJ9JykKcHJpbnQoZidSZWNlaXZlcjoge3JlY2VpdmVyfScpCgppZiBub3QgYWxsKFtzZXJ2ZXIsIHNlbmRlciwgcGFzc3dvcmQsIHJlY2VpdmVyXSk6CiAgICBwcmludCgnTWlzc2luZyBjb25maWcoKScpCiAgICBzeXMuZXhpdCgwKQoKbXNnID0gTUlNRVRleHQoJ0FJIE5ld3MgUmFkYXIgdGVzdCBtYWlsJywgJ3BsYWluJywgJ3V0Zi04JykKbXNnLkRlY29kZWRfY29udGVudCA9IG1zZy5nZXRfcGF5bG9hZCgpCm1zZ1snU3ViamVjdCddID0gJ0FJIE5ld3MgUmFkYXIgVGVzdCcKbXNnWydGcm9tJ10gPSBzZW5kZXIKbXNnWydUbyddID0gcmVjZWl2ZXIKCnRyeToKICAgIHMgPSBzbXRwbGliLlNNVFAoc2VydmVyLCA1ODcpCiAgICBzLnN0YXJ0dGxzKCkKICAgIHMubG9naW4oc2VuZGVyLCBwYXNzd29yZCkKICAgIHMuc2VuZF9tZXNzYWdlKG1zZykKICAgIHMucXVpdCgpCiAgICBwcmludCgnRW1haWwgc2VudCBTVUNDRVNTIScpCiAgICBzeXMuZXhpdCgwKQpleGNlcHQgQmFzZUV4Y2VwdGlvbiBhcyBlOgogICAgcHJpbnQoZidFUlJPUjoge3N0cihlKVs6ODBdfScpCiAgICBzeXMuZXhpdCgxKQ=="
-        python3 -c "$(echo "$python_code" | base64 -d)"
+        
+        # 直接写入Python文件，不使用base64
+        cat > send_test.py << 'END'
+import os, smtplib, sys
+from email.mime.text import MIMEText
+
+server = os.environ.get('SMTP_SERVER')
+sender = os.environ.get('SENDER_EMAIL')
+password = os.environ.get('SMTP_PASSWORD')
+receiver = os.environ.get('RECEIVER_EMAIL')
+
+print('CONFIG:')
+print(f'Server: {server}')
+print(f'Sender: {sender}')
+print(f'Receiver: {receiver}')
+
+if not all([server, sender, password, receiver]):
+    print('Missing SMTP secrets')
+    sys.exit(0)
+
+msg = MIMEText('AI News Radar test email', 'plain', 'utf-8')
+msg['Subject'] = 'AI News Radar Test'
+msg['From'] = sender
+msg['To'] = receiver
+
+try:
+    conn = smtplib.SMTP(server, 587)
+    conn.starttls()
+    conn.login(sender, password)
+    conn.send_message(msg)
+    conn.quit()
+    print('SUCCESS: Email sent!')
+    sys.exit(0)
+except Exception as e:
+    print(f'ERROR: {str(e)[:100]}')
+    sys.exit(1)
+END
+        
+        python3 send_test.py
