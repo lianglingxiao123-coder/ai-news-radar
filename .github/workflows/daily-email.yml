@@ -2,159 +2,121 @@ name: Daily Email Push
 on:
   schedule:
     - cron: '0 23 * * *'  # UTC 23:00，北京时间早7:00
-  workflow_dispatch:     # 允许手动触发
+  workflow_dispatch:     # 允许手动触发 - 这行很重要！
+    inputs:
+      force:
+        description: '强制重新抓取'
+        required: false
+        default: 'false'
 
 jobs:
   send-email:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@v4
+        
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           
       - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
       
-      # 加载OPML配置
       - name: Load OPML configuration
         env:
           OPML_B64: ${{ secrets.FOLLOW_OPML_B64 }}
         run: |
-          if [ ! -z "$OPML_B64" ]; then
-            echo "加载私有OPML配置..."
+          if [ -n "$OPML_B64" ]; then
             mkdir -p feeds
-            echo "$OPML_B64" | base64 --decode > feeds/follow.opml 2>/dev/null || echo "OPML解码失败"
+            base64 --decode <<< "$OPML_B64" > feeds/follow.opml 2>/dev/null || echo "Base64解码失败"
           fi
       
-      # 抓取新闻
-      - name: Fetch latest news
+      - name: Fetch latest news (optimized)
         run: |
+          echo "开始抓取最新新闻..."
           if [ -f feeds/follow.opml ]; then
-            python scripts/update_news.py \
-              --output-dir data \
-              --window-hours 24 \
-              --rss-opml feeds/follow.opml \
-              --timeout 300
+            python scripts/update_news.py --output-dir data --window-hours 24 --rss-opml feeds/follow.opml --timeout 120
           else
-            python scripts/update_news.py \
-              --output-dir data \
-              --window-hours 24 \
-              --timeout 300
+            python scripts/update_news.py --output-dir data --window-hours 24 --timeout 120
           fi
+          echo "抓取完成"
       
-      # 发送邮件（简化但可靠）
-      - name: Send email (simplified)
+      - name: 发送邮件（超简化版本）(Super Simple Version)
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
         run: |
-          echo "📧 邮件发送开始..."
+          echo "🚀 发送测试邮件..."
           
-          # 创建简单的HTML邮件内容
-          cat > send_email_simple.py << 'EOF'
-import os, smtplib, ssl, json, sys
+          # 创建最简单的Python脚本
+          python3 << 'EOF'
+import os, smtplib, json, sys
 from email.mime.text import MIMEText
-from datetime import datetime
 
-def create_html():
-    try:
-        with open('data/latest-24h.json', 'r') as f:
-            data = json.load(f)
-        items = data.get('items', [])
-        
-        html = '<h2>🤖 AI新闻日报</h2>'
-        html += f'<p>生成时间: {datetime.now().strftime("%Y-%m-%d %H:%M")}</p>'
-        
-        # 添加前15条新闻
-        for i, item in enumerate(items[:15]):
-            if isinstance(item, dict):
-                title = item.get('title', '无标题')
-                link = item.get('url', item.get('link', '#'))
-                source = item.get('source_name', item.get('site_name', '未知来源'))
-                html += f'<p><a href="{link}">{i+1}. {title[:80]}</a><br><small>来源: {source}</small></p>'
-        
-        html += '<hr><p style="color:gray">Powered by AI News Radar</p>'
-        return html
-    except:
-        return "<h2>AI新闻日报</h2><p>今日无数据</p>"
+# 获取配置
+smtp_server = os.getenv('SMTP_SERVER')
+sender_email = os.getenv('SENDER_EMAIL')
+password = os.getenv('SMTP_PASSWORD')
+receiver_email = os.getenv('RECEIVER_EMAIL')
 
-def main():
-    smtp_server = os.getenv('SMTP_SERVER')
-    smtp_port = int(os.getenv('SMTP_PORT', '587'))
-    sender_email = os.getenv('SENDER_EMAIL')
-    smtp_password = os.getenv('SMTP_PASSWORD')
-    receiver_email = os.getenv('RECEIVER_EMAIL')
-    
-    if not all([smtp_server, sender_email, smtp_password, receiver_email]):
-        print("❌ 缺少SMTP配置，请检查GitHub Secrets")
-        return False
-    
-    msg = MIMEText(create_html(), 'html', 'utf-8')
-    msg['Subject'] = f'AI日报 {datetime.now().strftime("%m/%d")}'
-    msg['From'] = sender_email
-    msg['To'] = receiver_email
-    
+print(f"使用SMTP服务器: {smtp_server}")
+print(f"发件人: {sender_email}")
+print(f"收件人: {receiver_email}")
+print(f"密码长度: {len(password) if password else 0}")
+
+# 创建邮件内容
+content = """<h2>🤖 AI新闻雷达测试邮件</h2>
+<p>这是一封测试邮件，确认你的邮件配置正常工作！</p>
+<p>现在开始，你将在每天早上7点收到AI行业的最新动态。</p>
+<hr>
+<p><small>时间戳: 在GitHub Actions中生成</small></p>
+"""
+
+msg = MIMEText(content, 'html', 'utf-8')
+msg['Subject'] = '✅ AI新闻雷达: 邮件测试成功'
+msg['From'] = sender_email
+msg['To'] = receiver_email
+
+# 尝试发送
+try:
+    # 尝试STARTTLS (端口587) - 最兼容
+    server = smtplib.SMTP(smtp_server, 587)
+    server.ehlo()
+    server.starttls()
+    server.ehlo()
+    server.login(sender_email, password)
+    server.send_message(msg)
+    server.quit()
+    print("✅ 邮件发送成功 (STARTTLS)")
+    sys.exit(0)
+except Exception as e1:
+    print(f"⚠️ STARTTLS失败: {str(e1)[:80]}")
     try:
-        # 尝试STARTTLS
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(sender_email, smtp_password)
+        # 备选: SSL (端口465)
+        import ssl
+        context = ssl.create_default_context()
+        server = smtplib.SMTP_SSL(smtp_server, 465, context=context)
+        server.login(sender_email, password)
         server.send_message(msg)
         server.quit()
-        print("✅ 邮件发送成功")
-        return True
-    except Exception as e:
-        print(f"⚠️ STARTTLS失败: {str(e)[:50]}")
-        try:
-            # 备选: SSL
-            context = ssl.create_default_context()
-            server = smtplib.SMTP_SSL(smtp_server, 465, context=context)
-            server.login(sender_email, smtp_password)
-            server.send_message(msg)
-            server.quit()
-            print("✅ 邮件发送成功 (SSL)")
-            return True
-        except Exception as e2:
-            print(f"❌ 所有方式失败: {str(e2)[:50]}")
-            return False
-
-if __name__ == "__main__":
-    if main():
+        print("✅ 邮件发送成功 (SSL)")
         sys.exit(0)
-    else:
+    except Exception as e2:
+        print(f"❌ SSL也失败: {str(e2)[:80]}")
         sys.exit(1)
 EOF
           
-          python send_email_simple.py
-      
-      - name: Notify on success
-        if: success()
-        run: |
-          echo "🎉 邮件工作流执行完成！"
-          echo "如果邮件未收到，请检查:"
-          echo "1. GitHub Secrets配置 (SMTP_SERVER, SENDER_EMAIL, SMTP_PASSWORD, RECEIVER_EMAIL)"
-          echo "2. 邮件可能进入了垃圾箱"
-          echo "3. 网络延迟，稍等片刻"
-      
-      - name: Log on failure
-        if: failure()
-        run: |
-          echo "⚠️ 邮件发送失败"
-          echo "常见原因:"
-          echo "1. GitHub Secrets未配置"
-          echo "2. SMTP服务器连接被屏蔽"
-          echo "3. 邮箱授权密码错误"
-          echo ""
-          echo "请配置以下Secrets:"
-          echo "SMTP_SERVER, SENDER_EMAIL, SMTP_PASSWORD, RECEIVER_EMAIL"
+          if [ $? -eq 0 ]; then
+            echo "🎉 测试邮件发送成功！请检查你的收件箱。"
+          else
+            echo "❌ 邮件发送失败，请检查Secrets配置。"
+            echo "常见问题："
+            echo "1. 邮箱密码是否正确（Gmail需要应用专用密码）"
+            echo "2. SMTP服务器地址是否正确"
+            echo "3. 邮箱是否开启了SMTP服务"
+          fi
