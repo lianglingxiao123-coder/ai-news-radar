@@ -25,51 +25,55 @@ jobs:
         run: |
           echo "Testing email configuration..."
           
-          # 创建Python测试脚本
-          python_code='
-import os, smtplib, sys
+          # 直接使用heredoc写入Python文件
+          cat > /tmp/test_email.py << 'PYEOF'
+import os
+import smtplib
+import sys
 from email.mime.text import MIMEText
 
-s = os.environ.get("SMTP_SERVER")
-f = os.environ.get("SENDER_EMAIL")
-p = os.environ.get("SMTP_PASSWORD")
-r = os.environ.get("RECEIVER_EMAIL")
+# Get SMTP configuration
+server = os.environ.get('SMTP_SERVER')
+sender = os.environ.get('SENDER_EMAIL')
+password = os.environ.get('SMTP_PASSWORD')
+receiver = os.environ.get('RECEIVER_EMAIL')
 
-print("SMTP Configuration Check:")
-print("Server:", s)
-print("Sender:", f)
-print("Receiver:", r)
+print('SMTP Configuration Check:')
+print(f'Server: {server}')
+print(f'Sender: {sender}')
+print(f'Receiver: {receiver}')
 
-if not all([s, f, p, r]):
-    print("Configuration incomplete.")
+if not all([server, sender, password, receiver]):
+    print('Missing SMTP configuration')
     sys.exit(0)
 
-msg = MIMEText("Test email from AI News Radar system", "plain", "utf-8")
-msg["Subject"] = "AI News Radar Test"
-msg["From"] = f
-msg["To"] = r
+# Create email
+msg = MIMEText('Test email from AI News Radar', 'plain', 'utf-8')
+msg['Subject'] = 'AI News Radar Test'
+msg['From'] = sender
+msg['To'] = receiver
 
 try:
-    conn = smtplib.SMTP(s, 587)
+    # Try connection
+    conn = smtplib.SMTP(server, 587)
     conn.starttls()
-    conn.login(f, p)
+    conn.login(sender, password)
     conn.send_message(msg)
     conn.quit()
-    print("SUCCESS: Email sent successfully")
+    print('SUCCESS: Email sent')
     sys.exit(0)
 except Exception as e:
-    print("ERROR:", str(e))
+    print(f'ERROR: {e}')
     sys.exit(1)
-          '
+PYEOF
           
-          # 写入文件执行
-          echo "$python_code" > /tmp/email_test.py
-          python3 /tmp/email_test.py
+          # 执行Python脚本
+          python3 /tmp/test_email.py
       
       - name: Report Result
         run: |
           if [ $? -eq 0 ]; then
             echo "✅ Email test successful!"
           else
-            echo "⚠️ Email test failed - check SMTP configuration"
+            echo "⚠️ Email test failed"
           fi
