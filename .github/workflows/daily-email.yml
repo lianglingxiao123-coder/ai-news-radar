@@ -4,63 +4,20 @@ on:
   schedule:
     - cron: '30 23 * * *'
 jobs:
-  send-email:
+  test-email:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-        
-    - name: Install dependencies
-      run: python3 -m pip install --upgrade pip
-    
-    - name: Send test email
-      env:
-        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-        RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-      run: |
-        echo "Testing SMTP configuration..."
-        
-        # 直接写入Python文件，不使用base64
-        cat > send_test.py << 'END'
-import os, smtplib, sys
-from email.mime.text import MIMEText
-
-server = os.environ.get('SMTP_SERVER')
-sender = os.environ.get('SENDER_EMAIL')
-password = os.environ.get('SMTP_PASSWORD')
-receiver = os.environ.get('RECEIVER_EMAIL')
-
-print('CONFIG:')
-print(f'Server: {server}')
-print(f'Sender: {sender}')
-print(f'Receiver: {receiver}')
-
-if not all([server, sender, password, receiver]):
-    print('Missing SMTP secrets')
-    sys.exit(0)
-
-msg = MIMEText('AI News Radar test email', 'plain', 'utf-8')
-msg['Subject'] = 'AI News Radar Test'
-msg['From'] = sender
-msg['To'] = receiver
-
-try:
-    conn = smtplib.SMTP(server, 587)
-    conn.starttls()
-    conn.login(sender, password)
-    conn.send_message(msg)
-    conn.quit()
-    print('SUCCESS: Email sent!')
-    sys.exit(0)
-except Exception as e:
-    print(f'ERROR: {str(e)[:100]}')
-    sys.exit(1)
-END
-        
-        python3 send_test.py
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Test email configuration
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        run: |
+          echo "Testing SMTP configuration..."
