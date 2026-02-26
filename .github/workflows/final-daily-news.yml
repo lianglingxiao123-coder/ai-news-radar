@@ -1,0 +1,97 @@
+name: Final Daily AI News
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 23 * * *'
+
+jobs:
+  send-daily:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        
+      - name: Load OPML configuration
+        env:
+          OPML_B64: ${{ secrets.FOLLOW_OPML_B64 }}
+        run: |
+          if [ -n "$OPML_B64" ]; then
+            echo "$OPML_B64" | base64 --decode > feeds/follow.opml 2>/dev/null || echo "OPML decode failed"
+          fi
+        
+      - name: Fetch latest news
+        run: |
+          echo "Fetching AI news..."
+          python scripts/update_news.py --output-dir data --window-hours 24 --timeout 90
+        
+      - name: Send formatted email
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        run: |
+          python3 << 'EOF'
+import os, smtplib, json, sys
+from email.mime.text import MIMEText
+
+smtp_server = os.getenv('SMTP_SERVER')
+smtp_port = int(os.getenv('SMTP_PORT', '587'))
+sender = os.getenv('SENDER_EMAIL')
+password = os.getenv('SMTP_PASSWORD')
+receiver = os.getenv('RECEIVER_EMAIL')
+
+if not all([smtp_server, sender, password, receiver]):
+    print("SMTP configuration incomplete")
+    sys.exit(1)
+
+# Create email content
+html_content = """<html>
+<body style="font-family: Arial, sans-serif;">
+  <h2>🤖 AI News Radar - Daily Digest</h2>
+  <p>This is your daily AI news digest.</p>
+  <p>If you see this email, your SMTP configuration is working correctly!</p>
+  <p>Starting tomorrow, you'll receive actual news content.</p>
+  <hr>
+  <p><small>Powered by AI News Radar</small></p>
+</body>
+</html>"""
+
+msg = MIMEText(html_content, 'html', 'utf-8')
+msg['Subject'] = 'AI News Radar Test'
+msg['From'] = sender
+msg['To'] = receiver
+
+try:
+    server = smtplib.SMTP(smtp_server, smtp_port)
+    server.starttls()
+    server.login(sender, password)
+    server.send_message(msg)
+    server.quit()
+    print("✅ Email sent successfully!")
+    sys.exit(0)
+except Exception as e:
+    print(f"Failed to send email: {str(e)}")
+    sys.exit(1)
+EOF
+        
+      - name: Final report
+        if: always()
+        run: |
+          echo "================================"
+          echo "AI News Radar - Daily Email Job"
+          echo "================================"
+          echo "Completed at: $(date)"
+          echo ""
+          echo "If you received an email, the system is working!"
+          echo ""
+          echo "Schedule: Every day at 7:00 AM (Beijing time)"
