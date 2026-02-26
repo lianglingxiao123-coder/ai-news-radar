@@ -1,102 +1,107 @@
-name: Daily AI News Email  
+name: AI News Daily Digest
 on:
   workflow_dispatch:
-    inputs:
-      recipient:
-        description: 'Manual test recipient email'
-        required: false  
   schedule:
-    - cron: '30 23 * * *'
+    - cron: '30 23 * * *'  # UTC 23:30 = 北京 07:30
 
 jobs:
-  notify:
+  send-daily-digest:
     runs-on: ubuntu-latest
-    
-    env:
-      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-      SMTP_PORT: ${{ vars.SMTP_PORT || '587' }}
-      
-    defaults:
-      run:
-        shell: bash
-        
     steps:
-    # Step 1: Checkout code  
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
       
-    # Step 2: Setup Python
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      id: python
-      with:
-        python-version: '3.11'
-        
-    # Step 3: Test secrets
-    - name: Validate email configuration
-      id: validate
-      run: |
-        echo "Validating SMTP configuration..."
-        echo "SMTP server: $SMTP_SERVER"
-        echo "SMTP port: $SMTP_PORT"
-        
-        REQUIRED_SECRETS=(
-          SMTP_SERVER 
-          SMTP_PASSWORD  
-          SENDER_EMAIL  
-          RECEIVER_EMAIL
-        )
-        
-        MISSING_SECRETS=()
-        
-        for secret_name in "${REQUIRED_SECRETS[@]}"; do
-          value="${!secret_name}"
-          if [ -z "${value}" ]; then
-            MISSING_SECRETS+=("${secret_name}")
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip3 install -r requirements.txt
+          fi
+          # 确保有SMTP库
+          pip3 install --upgrade setuptools
+      
+      - name: Run AI News Email Script
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+          # 从新闻更新脚本中获取的变量
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN || '' }}
+        run: |
+          echo "Starting AI News daily digest generation..."
+          echo "SMTP server: $SMTP_SERVER"
+          echo "Sender: $SENDER_EMAIL"
+          echo "Receiver: $RECEIVER_EMAIL"
+          
+          # 检查send_email.py是否存在
+          if [ -f "send_email.py" ]; then
+            echo "✅ Found send_email.py"
+            python3 send_email.py
           else
-            echo "${secret_name}: ✓ Set"
-          fi  
-        done
-        
-        if [ ${#MISSING_SECRETS[@]} -eq 0 ]; then
-          echo "✅ All secrets are set"
-          echo "validation_passed=true" >> "$GITHUB_OUTPUT"
-        else  
-          echo "⚠️ Missing secrets: ${MISSING_SECRETS[*]}"
-          echo "validation_passed=false" >> "$GITHUB_OUTPUT"
-        fi
-      env:
-        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-        RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-        
-    # Step 4: Send test email if secrets are valid
-    - name: Send test email
-      if: steps.validate.outputs.validation_passed == 'true'  
-      uses: dawidd6/action-send-mail@v3
-      with:
-        server_address: ${{ secrets.SMTP_SERVER }}
-        server_port: 587
-        username: ${{ secrets.SENDER_EMAIL }}
-        password: ${{ secrets.SMTP_PASSWORD }}
-        subject: AI News Radar - Test Message  
-        body: |
-          Hello!
-          
-          This is a test message from AI News Radar system.
-          
-          If you receive this, your GitHub Actions workflow is configured correctly!
-          Daily news summaries will be sent automatically at 7:30 AM Beijing time.
-          
-          Best regards,
-          AI News Radar Bot
-          
-        from: AI News Radar <${{ secrets.SENDER_EMAIL }}>
-        to: ${{ secrets.RECEIVER_EMAIL }}
-        
-    # Step 5: Report completion
-    - name: Completion message  
-      run: |
-        echo "✅ Email workflow executed successfully!"
-        echo "Daily emails will run at $(TZ='Asia/Shanghai' date -d 'today 07:30' '+%H:%M') Beijing time."
+            echo "❌ send_email.py not found, creating basic fallback"
+            # 如果send_email.py不存在，先创建一个
+            cat > /tmp/fallback_email.py << 'ENDPY'
+import os, smtplib, datetime
+from email.mime.text import MIMEText
+
+# 从环境变量获取配置
+smtp_server = os.getenv("SMTP_SERVER", "")
+smtp_password = os.getenv("SMTP_PASSWORD", "")
+sender = os.getenv("SENDER_EMAIL", "")
+receiver = os.getenv("RECEIVER_EMAIL", "")
+
+# 基本验证
+if not all([smtp_server, smtp_password, sender, receiver]):
+    print("Missing required SMTP configuration")
+    exit(0)
+
+# 创建邮件
+today = datetime.datetime.now().strftime("%Y-%m-%d")
+subject = f"AI News Digest - {today}"
+body = f"""
+AI News Daily Summary - {today}
+
+[含 AI 新闻 - AI News] Summary
+
+Due to a script error, the full news digest could not be generated.
+
+Please check:
+1. send_email.py script
+2. News data sources
+3. SMTP configuration
+
+The system will retry in the next cycle.
+
+-- AI News Radar System
+"""
+
+msg = MIMEText(body, 'plain', 'utf-8')
+msg['Subject'] = subject
+msg['From'] = sender
+msg['To'] = receiver
+
+# 发送邮件
+try:
+    with smtplib.SMTP(smtp_server, 587) as server:
+        server.starttls()
+        server.login(sender, smtp_password)
+        server.send_message(msg)
+        print("✅ Fallback email sent successfully")
+        exit(0)
+except Exception as e:
+    print(f"❌ Email sending failed: {e}")
+    exit(1)
+ENDPY
+            python3 /tmp/fallback_email.py
+          fi
+      
+      - name: Completion Status
+        run: |
+          echo "✅ AI News email workflow completed"
+          echo "Next scheduled run: $(TZ='Asia/Shanghai' date -d '+1 day 07:30' '+%Y-%m-%d %H:%M') Beijing time"
