@@ -169,7 +169,7 @@ def fetch_twitter_experts() -> list[dict]:
         for mirror in RSSHUB_MIRRORS:
             url = f"{mirror}/twitter/user/{handle}"
             xml = fetch_url(url, timeout=8)
-            if xml and "<item>" in xml or "<entry>" in xml:
+            if xml and ("<item>" in xml or "<entry>" in xml):
                 items = parse_rss_items(xml, name, role)
                 if items:
                     results.extend(items[:2])  # 每人最多取2条
