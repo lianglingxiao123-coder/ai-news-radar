@@ -1,66 +1,54 @@
-name: AI News Daily Notification
+name: Daily Email Push
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 23 * * *' # 北京时间 07:30
+    - cron: '30 23 * * *'  # UTC 23:30 = 北京 07:30
 
 jobs:
-  send-notification:
+  send-email:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Setup Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
-      - name: Send daily notification
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Load OPML subscriptions
+        env:
+          FOLLOW_OPML_B64: ${{ secrets.FOLLOW_OPML_B64 }}
+        run: |
+          mkdir -p feeds
+          if [ -n "$FOLLOW_OPML_B64" ]; then
+            echo "$FOLLOW_OPML_B64" | base64 --decode > feeds/follow.opml
+            echo "✅ OPML 已加载"
+          else
+            echo "⚠️ 未找到 FOLLOW_OPML_B64，跳过 OPML 加载"
+          fi
+
+      - name: Fetch latest AI news
+        run: |
+          echo "📰 抓取最新 AI 新闻..."
+          python scripts/update_news.py \
+            --output-dir data \
+            --window-hours 24 \
+            --timeout 120 || echo "⚠️ 抓取部分失败，继续发送已有数据"
+
+      - name: Send daily email digest
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
         run: |
-          python3 << 'EOF'
-          import os, smtplib, datetime
-          from email.mime.text import MIMEText
+          echo "📧 发送每日邮件摘要..."
+          python scripts/send_email.py
 
-          # 1. 获取环境变量
-          SMTP_SERVER = os.getenv('SMTP_SERVER', '')
-          SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
-          SENDER_EMAIL = os.getenv('SENDER_EMAIL', '')
-          RECEIVER_EMAIL = os.getenv('RECEIVER_EMAIL', '')
-
-          if not all([SMTP_SERVER, SMTP_PASSWORD, SENDER_EMAIL, RECEIVER_EMAIL]):
-              print("❌ 缺失 Secrets 配置，请在 Settings -> Secrets 中检查")
-              exit(1)
-
-          # 2. 构建邮件正文
-          today = datetime.datetime.now().strftime("%Y-%m-%d")
-          body = f"""AI新闻雷达日报
-          =============
-          📅 日期：{today}
-          🎯 系统状态：正常运行中
-          
-          提示：这是一条自动生成的系统状态通知。
-          """
-
-          # 3. 发送邮件
-          try:
-              msg = MIMEText(body, 'plain', 'utf-8')
-              msg['Subject'] = f"AI新闻雷达日报 - {today}"
-              msg['From'] = f"AI News Radar <{SENDER_EMAIL}>"
-              msg['To'] = RECEIVER_EMAIL
-
-              server = smtplib.SMTP(SMTP_SERVER, 587, timeout=15)
-              server.starttls()
-              server.login(SENDER_EMAIL, SMTP_PASSWORD)
-              server.send_message(msg)
-              server.quit()
-              print("✅ 邮件发送成功！")
-          except Exception as e:
-              print(f"❌ 发送失败: {e}")
-              exit(1)
-          EOF
+      - name: Done
+        run: echo "✅ 完成！邮件已发送"
