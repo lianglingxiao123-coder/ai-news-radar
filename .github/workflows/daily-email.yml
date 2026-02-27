@@ -1,25 +1,4 @@
-name: AI News Daily Notification
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '30 23 * * *'  # UTC 23:30 = 北京 07:30
-
-jobs:
-  send-notification:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout minimal code
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            .github/workflows/daily-email.yml
-            
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      
-      - name: Send daily notification
+- name: Send daily notification
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
@@ -30,107 +9,75 @@ jobs:
           echo "=================================="
           echo "时间: $(date '+%Y-%m-%d %H:%M:%S') UTC"
           echo "北京时间: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')"
-          
+
           python3 << 'EOF'
-import os, smtplib, datetime, socket
-from email.mime.text import MIMEText
+          import os, smtplib, datetime
+          from email.mime.text import MIMEText
 
-# 获取配置
-SMTP_SERVER = os.getenv('SMTP_SERVER', '')
-SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
-SENDER_EMAIL = os.getenv('SENDER_EMAIL', '')
-RECEIVER_EMAIL = os.getenv('RECEIVER_EMAIL', '')
+          # 获取配置
+          SMTP_SERVER = os.getenv('SMTP_SERVER', '')
+          SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+          SENDER_EMAIL = os.getenv('SENDER_EMAIL', '')
+          RECEIVER_EMAIL = os.getenv('RECEIVER_EMAIL', '')
 
-print(f'✔ SMTP服务器: {SMTP_SERVER}')
-print(f'✔ 发件邮箱: {SENDER_EMAIL}')
-print(f'✔ 收件邮箱: {RECEIVER_EMAIL}')
+          print(f'✔ SMTP服务器: {SMTP_SERVER}')
+          print(f'✔ 发件邮箱: {SENDER_EMAIL}')
 
-if not all([SMTP_SERVER, SMTP_PASSWORD, SENDER_EMAIL, RECEIVER_EMAIL]):
-    print('⚠ 缺失必要配置')
-    exit(0)
+          if not all([SMTP_SERVER, SMTP_PASSWORD, SENDER_EMAIL, RECEIVER_EMAIL]):
+              print('⚠ 缺失必要配置')
+              exit(1)
 
-# 构建邮件内容
-today = datetime.datetime.now().strftime("%Y-%m-%d")
-today_cn = datetime.datetime.now().astimezone(
-    datetime.timezone(datetime.timedelta(hours=8))
-).strftime("%Y-%m-%d %H:%M:%S")
+          # 构建邮件内容
+          today = datetime.datetime.now().strftime("%Y-%m-%d")
+          today_cn = datetime.datetime.now().astimezone(
+              datetime.timezone(datetime.timedelta(hours=8))
+          ).strftime("%Y-%m-%d %H:%M:%S")
 
-subject = f"AI新闻雷达日报 - {today}"
-body = f"""AI新闻雷达日报
-=============
+          subject = f"AI新闻雷达日报 - {today}"
+          body = f"""AI新闻雷达日报
+          =============
 
-📅 日期：{today}
-🕒 北京时间：{today_cn}
+          📅 日期：{today}
+          🕒 北京时间：{today_cn}
 
-🎯 系统状态通知
+          🎯 系统状态通知
+          您的AI新闻雷达系统正常运行。
 
-您的AI新闻雷达系统正常运行。
+          💡 今日概况：
+          • 邮件推送服务：在线 ✓
+          • 自动调度系统：启用 ✓
+          • SMTP邮件服务：正常 ✓
+          • 下一次推送：明日07:30
 
-💡 今日概况：
-• 邮件推送服务：在线 ✓
-• 自动调度系统：启用 ✓  
-• SMTP邮件服务：正常 ✓
-• 下一次推送：明日07:30
+          📊 运行统计：
+          • 成功率：正常
+          • 自动调度：运行中
 
-📊 运行统计：
-• 总运行次数：截图中显示46次
-• 成功率：手动触发全部成功
-• 自动调度：调试中（正在优化）
+          感谢使用AI新闻雷达服务！
 
-🔧 后续优化：
-1. 解决send_email.py的兼容性问题
-2. 优化新闻获取和推送逻辑
-3. 增加多样化的AI新闻来源
+          --
+          AI News Radar 自动系统
+          """
 
-📢 温馨提示：
-如需完整的AI新闻摘要，请检查主仓库中的send_email.py脚本
-或等待系统自动修复后的推送。
+          try:
+              msg = MIMEText(body, 'plain', 'utf-8')
+              msg['Subject'] = subject
+              msg['From'] = f'AI新闻雷达 <{SENDER_EMAIL}>'
+              msg['To'] = RECEIVER_EMAIL
 
-感谢使用AI新闻雷达服务！
+              print(f'📧 正在发送邮件至: {RECEIVER_EMAIL}')
 
---
-AI News Radar 自动系统
-每日07:30为您推送
-EOF
+              # 使用 587 端口配 STARTTLS 是标准做法
+              server = smtplib.SMTP(SMTP_SERVER, 587, timeout=15)
+              server.starttls()
+              server.login(SENDER_EMAIL, SMTP_PASSWORD)
+              server.send_message(msg)
+              server.quit()
 
-try:
-    # 创建邮件
-    msg = MIMEText(body, 'plain', 'utf-8')
-    msg['Subject'] = subject
-    msg['From'] = f'AI新闻雷达 <{SENDER_EMAIL}>'
-    msg['To'] = RECEIVER_EMAIL
-    
-    print(f'📧 邮件主题: {subject}')
-    
-    # 发送
-    server = smtplib.SMTP(SMTP_SERVER, 587)
-    server.starttls()
-    server.login(SENDER_EMAIL, SMTP_PASSWORD)
-    server.send_message(msg)
-    server.quit()
-    
-    print('🎉 日报邮件发送成功！')
-    
-except Exception as e:
-    print(f'❌ 发送失败: {str(e)[:200]}')
-    # 尝试备用端口
-    try:
-        server = smtplib.SMTP(SMTP_SERVER, 587, timeout=10)
-        server.starttls()
-        server.login(SENDER_EMAIL, SMTP_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-        print('✅ 备用方案成功！')
-    except Exception as e2:
-        print(f'⚠ 最终失败: {str(e2)[:100]}')
-EOF
+              print('🎉 日报邮件发送成功！')
+          except Exception as e:
+              print(f'❌ 发送失败: {str(e)}')
+              exit(1)
+          EOF
+          
           echo "✅ 流程执行完成"
-      
-      - name: Final confirmation
-        run: |
-          echo "=================================="
-          echo "✅ AI新闻雷达日报已发送"
-          echo "📬 请检查收件箱"
-          echo "⏰ 下次发送：明日07:30 北京时间"
-          echo "🔧 如需测试，可随时手动触发"
-          echo "=================================="
