@@ -83,18 +83,37 @@ def fetch_url(url: str, timeout: int = 10) -> Optional[str]:
 
 def translate_to_zh(text: str) -> str:
     """
-    简单英文→中文翻译（规则映射 + 直接返回中文）
-    注：如需真实翻译，可接入 DeepL / Google Translate API
+    英文→中文翻译，使用 Google Translate 免费接口（无需 API key）
+    如果已是中文则直接返回；翻译失败则返回原文
     """
     if not text:
         return ""
-    # 如果已有中文（超过30%是CJK字符），直接返回
+    # 如果已有中文（超过20%是CJK字符），直接返回
     cjk = len(re.findall(r"[\u4e00-\u9fff]", text))
     if cjk / max(len(text), 1) > 0.2:
         return text
-    # 对英文内容标注"[EN]"，保持原文
-    # 如果配置了翻译API可在此替换
-    return f"[英] {text}"
+
+    try:
+        import urllib.parse
+        # Google Translate 非官方接口，无需 key
+        encoded = urllib.parse.quote(text[:500])  # 限制长度避免请求过大
+        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q={encoded}"
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json"
+        })
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            import json as _json
+            data = _json.loads(resp.read().decode("utf-8"))
+            # 结果格式: [[["译文","原文",...], ...], ...]
+            parts = []
+            for segment in (data[0] or []):
+                if segment and segment[0]:
+                    parts.append(str(segment[0]))
+            result = "".join(parts).strip()
+            return result if result else text
+    except Exception:
+        return text  # 翻译失败静默返回原文
 
 # ── 抓取专家 Twitter 动态 ─────────────────────────────────────────────────────
 
@@ -316,8 +335,8 @@ def build_email(news_items: list[dict],
         zh      = _esc(item.get("content_zh", ""))
         url     = item.get("url", "#")
 
-        # 如果翻译只是 "[英] ..." 就只显示原文
-        show_zh = zh and not zh.startswith("[英]")
+        # 如果翻译结果和原文一样（翻译失败降级），只显示原文不重复
+        show_zh = zh and zh != content
 
         tw_rows += f"""
         <tr><td style="padding:12px 0;border-bottom:1px solid #e8f4fd;">
@@ -355,7 +374,7 @@ def build_email(news_items: list[dict],
         title = _esc(item["title"])
         title_zh = _esc(item.get("title_zh", ""))
         url   = item.get("url", "#")
-        show_zh = title_zh and not title_zh.startswith("[英]")
+        show_zh = title_zh and title_zh != title
 
         yt_rows += f"""
         <tr><td style="padding:12px 0;border-bottom:1px solid #fff0f0;">
