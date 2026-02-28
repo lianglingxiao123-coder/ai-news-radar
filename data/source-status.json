@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-02-28T22:48:10.658633Z",
+  "generated_at": "2026-02-28T23:39:56.311089Z",
   "sites": [
     {
       "site_id": "techurls",
       "site_name": "TechURLs",
       "ok": true,
       "item_count": 405,
-      "duration_ms": 420,
+      "duration_ms": 441,
       "error": null
     },
     {
@@ -14,15 +14,15 @@
       "site_name": "Buzzing",
       "ok": true,
       "item_count": 744,
-      "duration_ms": 279,
+      "duration_ms": 337,
       "error": null
     },
     {
       "site_id": "iris",
       "site_name": "Info Flow",
       "ok": true,
-      "item_count": 357,
-      "duration_ms": 12945,
+      "item_count": 360,
+      "duration_ms": 11095,
       "error": null
     },
     {
@@ -30,15 +30,15 @@
       "site_name": "BestBlogs",
       "ok": true,
       "item_count": 84,
-      "duration_ms": 7352,
+      "duration_ms": 2006,
       "error": null
     },
     {
       "site_id": "tophub",
       "site_name": "TopHub",
       "ok": true,
-      "item_count": 3036,
-      "duration_ms": 1439,
+      "item_count": 3043,
+      "duration_ms": 1846,
       "error": null
     },
     {
@@ -46,7 +46,7 @@
       "site_name": "Zeli",
       "ok": true,
       "item_count": 68,
-      "duration_ms": 431,
+      "duration_ms": 340,
       "error": null
     },
     {
@@ -54,7 +54,7 @@
       "site_name": "AI HubToday",
       "ok": true,
       "item_count": 38,
-      "duration_ms": 231,
+      "duration_ms": 222,
       "error": null
     },
     {
@@ -62,7 +62,7 @@
       "site_name": "AIbase",
       "ok": true,
       "item_count": 20,
-      "duration_ms": 1174,
+      "duration_ms": 1262,
       "error": null
     },
     {
@@ -70,7 +70,7 @@
       "site_name": "AI今日热榜",
       "ok": false,
       "item_count": 0,
-      "duration_ms": 50,
+      "duration_ms": 183,
       "error": "403 Client Error: Forbidden for url: https://aihot.today/"
     },
     {
@@ -78,7 +78,7 @@
       "site_name": "NewsNow",
       "ok": true,
       "item_count": 147,
-      "duration_ms": 594,
+      "duration_ms": 645,
       "error": null
     },
     {
@@ -87,7 +87,7 @@
       "ok": false,
       "partial_failures": 10,
       "item_count": 0,
-      "duration_ms": 1961,
+      "duration_ms": 1978,
       "error": "10 feeds failed",
       "feed_count": 10,
       "effective_feed_count": 10,
@@ -103,9 +103,9 @@
     "opmlrss"
   ],
   "zero_item_sites": [],
-  "fetched_raw_items": 4899,
-  "items_before_topic_filter": 6973,
-  "items_in_24h": 796,
+  "fetched_raw_items": 4909,
+  "items_before_topic_filter": 7072,
+  "items_in_24h": 789,
   "rss_opml": {
     "enabled": true,
     "path": "feeds/follow.opml",
@@ -136,7 +136,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/karpathy",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 195,
+        "duration_ms": 199,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -150,7 +150,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/AnthropicAI",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 200,
+        "duration_ms": 199,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -164,7 +164,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/ClemDelangue",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 190,
+        "duration_ms": 192,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -178,7 +178,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/demishassabis",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 192,
+        "duration_ms": 195,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -192,7 +192,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/elonmusk",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 202,
+        "duration_ms": 201,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -206,7 +206,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/gdb",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 196,
+        "duration_ms": 201,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -220,7 +220,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/ilyasut",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 189,
+        "duration_ms": 195,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -248,7 +248,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/sama",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 202,
+        "duration_ms": 200,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
@@ -262,7 +262,7 @@
         "effective_feed_url": "https://rsshub.app/twitter/user/ylecun",
         "ok": false,
         "item_count": 0,
-        "duration_ms": 195,
+        "duration_ms": 196,
         "error": "404 Client Error: Not Found for url: https://google.com/404",
         "skipped": false,
         "skip_reason": null,
